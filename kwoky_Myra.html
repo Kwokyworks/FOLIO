@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Instance Search</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --background: #f5f6fa;
+            --text: #333;
+            --border: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--secondary);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: var(--primary);
+            margin-top: 20px;
+        }
+
+        #loginSection {
+            max-width: 400px;
+            margin: 0 auto 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 5px;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        input,
+        select {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        select[multiple] {
+            height: 100px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        button {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .column-select {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .column-select label {
+            display: inline-block;
+            margin: 5px 15px 5px 0;
+            cursor: pointer;
+        }
+
+        .column-select input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        #results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fd;
+        }
+
+        tr:hover {
+            background: #eef2f7;
+        }
+
+        .marc-field {
+            max-width: 200px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9em;
+        }
+
+        .marc-subfield {
+            display: block;
+            margin: 2px 0;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px 0;
+            gap: 10px;
+        }
+
+        .pagination button {
+            min-width: 30px;
+            padding: 8px;
+        }
+
+        .pagination .current-page {
+            background: var(--primary);
+        }
+
+        .pagination span {
+            margin: 0 10px;
+        }
+
+        #resultSummary {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #loginError {
+            color: var(--accent);
+            margin-top: 10px;
+        }
+
+        #loadingIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .export-buttons {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>FOLIO Malaysia Research Assessment (MyRA) lookup tool</h2>
+
+    <div id="loginSection">
+        <h3>Login</h3>
+        <form id="loginForm">
+            <label for="endpoint">Endpoint:</label>
+            <select id="endpoint" required>
+                <option value="https://okapi-demo2.folio.ebsco.com">Demo2</option>
+                <option value="https://okapi-demo1.folio.ebsco.com">Demo 1</option>
+                <option value="https://okapi-demo.folio.ebsco.com">Demo</option>
+                <option value="https://folio-okapi.example.com">Example FOLIO</option>
+                <option value="https://okapi-test.folio.org">Test Environment</option>
+            </select>
+
+            <label for="tenant">Tenant:</label>
+            <select id="tenant" required>
+                <!-- Options will be populated dynamically based on endpoint -->
+            </select>
+
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter username" required>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password" required>
+
+            <button type="submit">Login</button>
+        </form>
+        <p id="loginError"></p>
+    </div>
+
+    <form id="searchForm" class="hidden">
+        <label for="keyword">Title:</label>
+        <input type="text" id="keyword" placeholder="e.g., Harry Potter">
+
+        <label for="location">Location (Hold Ctrl/Cmd to select multiple):</label>
+        <select id="location" multiple>
+            <option value="">Any</option>
+        </select>
+
+        <label for="materialType">Material Type (Hold Ctrl/Cmd to select multiple):</label>
+        <select id="materialType" multiple>
+            <option value="">Any</option>
+        </select>
+
+        <label for="subject">Subject:</label>
+        <input type="text" id="subject" placeholder="e.g., Wizards">
+
+        <label for="electronicAccess">Electronic Access:</label>
+        <select id="electronicAccess">
+            <option value="">Any</option>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+
+        <button type="submit">Search</button>
+        <button type="button" id="resetForm">Reset</button>
+    </form>
+
+    <div id="columnSelect" class="column-select hidden">
+        <h3>Display Columns</h3>
+        <div>
+            <label><input type="checkbox" id="colTitle" checked> Title</label>
+            <label><input type="checkbox" id="colId" checked> Instance ID</label>
+            <label><input type="checkbox" id="colHrid" checked> HRID</label>
+            <label><input type="checkbox" id="colSubjects"> Subjects</label>
+            <label><input type="checkbox" id="colElectronic" checked> Electronic Access</label>
+            <label><input type="checkbox" id="colSrsId" checked> SRS ID</label>
+        </div>
+        <h4>MARC Fields</h4>
+        <div>
+            <label><input type="checkbox" id="selectAllMarc"> Select/Unselect All MARC Fields</label>
+        </div>
+        <div>
+            <label><input type="checkbox" id="colMarc020" checked> 020 (ISBN)</label>
+            <label><input type="checkbox" id="colMarc090"> 090 (Call Number)</label>
+            <label><input type="checkbox" id="colMarc100"> 100 (Author)</label>
+            <label><input type="checkbox" id="colMarc245" checked> 245 (Title)</label>
+            <label><input type="checkbox" id="colMarc250"> 250 (Edition)</label>
+            <label><input type="checkbox" id="colMarc260"> 260 (Publication)</label>
+            <label><input type="checkbox" id="colMarc260c"> 260$c (Date)</label>
+            <label><input type="checkbox" id="colMarc264"> 264 (Production)</label>
+            <label><input type="checkbox" id="colMarc264c"> 264$c (Date)</label>
+            <label><input type="checkbox" id="colMarc300"> 300 (Physical Desc)</label>
+            <label><input type="checkbox" id="colMarc650"> 650 (Subject)</label>
+        </div>
+    </div>
+
+    <div id="results">
+        <div id="resultSummary">
+            <div id="summaryText"></div>
+        </div>
+        <div id="resultsTable"></div>
+        <div id="loadingIndicator">Loading...</div>
+        <div class="export-buttons hidden" id="exportOptions">
+            <button onclick="exportToCSV()">Export to CSV</button>
+            <button onclick="exportToJSON()">Export to JSON</button>
+        </div>
+    </div>
+
+    <div id="pagination" class="pagination hidden"></div>
+
+    <script>
+        let OKAPI_URL = '';
+        let TENANT_ID = '';
+        let token = null;
+        let currentQuery = '';
+        let currentPage = 0;
+        const pageSize = 50;
+        let totalRecords = 0;
+        let currentResults = [];
+
+        // Define endpoint-tenant relationships
+        const endpointTenants = {
+            'https://okapi-demo.folio.ebsco.com': [
+                { value: 'fs00000002', text: 'fs00001234' }
+            ], 'https://okapi-demo1.folio.ebsco.com': [
+                { value: 'idksoguess', text: 'idksoguess' }
+            ], 'https://okapi-demo2.folio.ebsco.com': [
+                { value: 'fs00001176', text: 'fs00001176 (Default)' }
+            ],
+            'https://folio-okapi.example.com': [
+                { value: 'diku', text: 'DIKU' },
+                { value: 'example_lib', text: 'Example Library' }
+            ],
+            'https://okapi-test.folio.org': [
+                { value: 'test_tenant', text: 'Test Tenant' },
+                { value: 'test_dev', text: 'Test Development' }
+            ]
+        };
+
+        // Function to populate tenant dropdown based on endpoint
+        function populateTenantDropdown(endpoint) {
+            const tenantSelect = document.getElementById('tenant');
+            tenantSelect.innerHTML = ''; // Clear existing options
+            const tenants = endpointTenants[endpoint] || [];
+            tenants.forEach(tenant => {
+                const option = document.createElement('option');
+                option.value = tenant.value;
+                option.textContent = tenant.text;
+                tenantSelect.appendChild(option);
+            });
+        }
+
+        // Initialize tenant dropdown with default endpoint
+        const endpointSelect = document.getElementById('endpoint');
+        populateTenantDropdown(endpointSelect.value);
+
+        // Update tenant options when endpoint changes
+        endpointSelect.addEventListener('change', (e) => {
+            populateTenantDropdown(e.target.value);
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            OKAPI_URL = document.getElementById('endpoint').value;
+            TENANT_ID = document.getElementById('tenant').value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            try {
+                const response = await fetch(`${OKAPI_URL}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-okapi-tenant': TENANT_ID
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) throw new Error('Login failed. Check credentials.');
+                const data = await response.json();
+                token = response.headers.get('x-okapi-token') || data.okapiToken;
+                if (!token) throw new Error('No token received.');
+
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('searchForm').classList.remove('hidden');
+                document.getElementById('columnSelect').classList.remove('hidden');
+                document.getElementById('loginError').textContent = '';
+
+                await populateLocations();
+                await populateMaterialTypes();
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('loginError').textContent = error.message;
+            }
+        });
+
+        async function populateLocations() {
+            try {
+                const response = await fetch(`${OKAPI_URL}/locations?limit=1000`, {
+                    headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Failed to fetch locations');
+                const data = await response.json();
+                const locationSelect = document.getElementById('location');
+                const sortedLocations = data.locations.sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                );
+                sortedLocations.forEach(loc => {
+                    const option = document.createElement('option');
+                    option.value = loc.id;
+                    option.textContent = loc.name;
+                    locationSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+            }
+        }
+
+        async function populateMaterialTypes() {
+            try {
+                const response = await fetch(`${OKAPI_URL}/material-types?limit=1000`, {
+                    headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                });
+                if (!response.ok) throw new Error('Failed to fetch material types');
+                const data = await response.json();
+                const materialTypeSelect = document.getElementById('materialType');
+                const sortedMaterialTypes = data.mtypes.sort((a, b) =>
+                    a.name.localeCompare(b.name)
+                );
+                sortedMaterialTypes.forEach(mt => {
+                    const option = document.createElement('option');
+                    option.value = mt.id;
+                    option.textContent = mt.name;
+                    materialTypeSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error fetching material types:', error);
+            }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!token) {
+                alert('Please log in first.');
+                return;
+            }
+
+            const keyword = document.getElementById('keyword').value.trim();
+            const locationSelect = document.getElementById('location');
+            const locations = Array.from(locationSelect.selectedOptions)
+                .filter(option => option.value !== '')
+                .map(option => option.value);
+            const materialTypeSelect = document.getElementById('materialType');
+            const materialTypes = Array.from(materialTypeSelect.selectedOptions)
+                .filter(option => option.value !== '')
+                .map(option => option.value);
+            const subject = document.getElementById('subject').value.trim();
+            const electronicAccess = document.getElementById('electronicAccess').value;
+
+            const conditions = [];
+            if (keyword) conditions.push(`title="${keyword}"`);
+            if (locations.length > 0) {
+                conditions.push(`holdings.permanentLocationId==(${locations.map(loc => `"${loc}"`).join(' or ')})`);
+            }
+            if (materialTypes.length > 0) {
+                conditions.push(`items.materialTypeId==(${materialTypes.map(mt => `"${mt}"`).join(' or ')})`);
+            }
+            if (subject) conditions.push(`subjects=="${subject}"`);
+            if (electronicAccess === 'true') {
+                conditions.push('(electronicAccess all "*" or holdings.electronicAccess all "*")');
+            }
+            if (electronicAccess === 'false') {
+                conditions.push('(electronicAccess="" and holdings.electronicAccess="")');
+            }
+
+            if (conditions.length === 0) {
+                alert('Please enter at least one search criterion.');
+                return;
+            }
+
+            currentQuery = conditions.join(' and ');
+            console.log('Generated CQL Query:', currentQuery);
+            currentPage = 0;
+            await fetchPage(currentPage);
+        });
+
+        document.getElementById('resetForm').addEventListener('click', () => {
+            document.getElementById('searchForm').reset();
+            document.getElementById('resultsTable').innerHTML = '';
+            document.getElementById('summaryText').textContent = '';
+            document.getElementById('pagination').classList.add('hidden');
+            document.getElementById('exportOptions').classList.add('hidden');
+            currentQuery = '';
+            currentResults = [];
+        });
+
+        async function fetchPage(page) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = 'block';
+
+            try {
+                const offset = page * pageSize;
+                const url = `${OKAPI_URL}/search/instances?query=${encodeURIComponent(currentQuery)}&limit=${pageSize}&offset=${offset}`;
+                console.log('Fetching URL:', url);
+                const response = await fetch(url, {
+                    headers: {
+                        'x-okapi-tenant': TENANT_ID,
+                        'x-okapi-token': token,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP error! Status: ${response.status}, Details: ${JSON.stringify(errorData)}`);
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+                totalRecords = data.totalRecords || 0;
+
+                if (!data.instances || data.instances.length === 0) {
+                    console.warn('No instances found in response');
+                    displayResults([]);
+                    updatePagination();
+                    document.getElementById('exportOptions').classList.remove('hidden');
+                    loadingIndicator.style.display = 'none';
+                    return;
+                }
+
+                const instancesWithDetails = await Promise.all(data.instances.map(async (instance) => {
+                    try {
+                        const instanceResponse = await fetch(`${OKAPI_URL}/inventory/instances/${instance.id}`, {
+                            headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                        });
+
+                        if (!instanceResponse.ok) {
+                            console.warn(`Instance ${instance.id} fetch failed`);
+                            instance.marcFields = {};
+                            instance.srsId = 'N/A';
+                            instance.hasElectronicAccess = instance.electronicAccess?.length > 0;
+                            return instance;
+                        }
+
+                        const instanceData = await instanceResponse.json();
+                        const isMarcBased = instanceData.source?.toLowerCase().includes('marc');
+                        instance.srsId = instanceData.sourceRecordIds?.[0] || 'N/A';
+                        instance.hrid = instanceData.hrid || 'N/A';
+
+                        const holdingsResponse = await fetch(`${OKAPI_URL}/holdings-storage/holdings?query=instanceId=="${instance.id}"`, {
+                            headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                        });
+
+                        let hasElectronicHoldings = false;
+                        if (holdingsResponse.ok) {
+                            const holdingsData = await holdingsResponse.json();
+                            hasElectronicHoldings = holdingsData.holdingsRecords?.some(holding =>
+                                holding.electronicAccess?.length > 0
+                            ) || false;
+                        }
+
+                        instance.hasElectronicAccess = (instance.electronicAccess?.length > 0 || hasElectronicHoldings);
+
+                        if (isMarcBased) {
+                            let marcRecord = null;
+                            if (instance.hrid !== 'N/A') {
+                                const marcResponse = await fetch(`${OKAPI_URL}/source-storage/source-records?externalHrid=${instance.hrid}&recordType=MARC_BIB&limit=1`, {
+                                    headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                                });
+                                if (marcResponse.ok) {
+                                    const marcData = await marcResponse.json();
+                                    if (marcData.sourceRecords?.length > 0 && marcData.sourceRecords[0].parsedRecord?.content?.fields) {
+                                        marcRecord = marcData.sourceRecords[0].parsedRecord.content.fields;
+                                        instance.srsId = marcData.sourceRecords[0].recordId || instance.srsId;
+                                    }
+                                }
+                            }
+
+                            if (!marcRecord) {
+                                const fallbackResponse = await fetch(`${OKAPI_URL}/source-storage/records?query=externalIdsHolder.instanceId=="${instance.id}" and recordType=="MARC_BIB"&limit=1`, {
+                                    headers: { 'x-okapi-tenant': TENANT_ID, 'x-okapi-token': token, 'Accept': 'application/json' }
+                                });
+                                if (fallbackResponse.ok) {
+                                    const fallbackData = await fallbackResponse.json();
+                                    if (fallbackData.records?.length > 0 && fallbackData.records[0].parsedRecord?.content?.fields) {
+                                        marcRecord = fallbackData.records[0].parsedRecord.content.fields;
+                                    }
+                                }
+                            }
+
+                            instance.marcFields = marcRecord ? extractMarcFields(marcRecord) : {};
+                        } else {
+                            instance.marcFields = {};
+                        }
+                    } catch (error) {
+                        console.error(`Error fetching details for ${instance.id}:`, error);
+                        instance.marcFields = {};
+                        instance.srsId = 'N/A';
+                        instance.hasElectronicAccess = instance.electronicAccess?.length > 0;
+                    }
+                    return instance;
+                }));
+
+                console.log('Processed Instances:', instancesWithDetails);
+                currentResults = instancesWithDetails;
+                displayResults(instancesWithDetails);
+                updatePagination();
+                document.getElementById('exportOptions').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('resultsTable').innerHTML = `<p>Error retrieving results: ${error.message}</p>`;
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        function extractMarcFields(fields) {
+            const targetTags = ['020', '090', '100', '245', '250', '260', '264', '300', '650'];
+            const marcFields = {};
+
+            fields.forEach(field => {
+                const tag = Object.keys(field)[0];
+                if (targetTags.includes(tag)) {
+                    const value = field[tag];
+                    if (typeof value === 'string') {
+                        marcFields[tag] = value;
+                    } else if (value.subfields) {
+                        marcFields[`${tag}_raw`] = `${value.ind1}${value.ind2} ${value.subfields.map(sf => {
+                            const subKey = Object.keys(sf)[0];
+                            return `$${subKey} ${sf[subKey]}`;
+                        }).join(' ')}`;
+                        let readable = value.subfields.map(sf => {
+                            const subKey = Object.keys(sf)[0];
+                            return `${subKey}: ${sf[subKey]}`;
+                        }).join('\n');
+                        marcFields[tag] = readable;
+                        if (tag === '260' || tag === '264') {
+                            const dateSubfield = value.subfields.find(sf => sf.c);
+                            if (dateSubfield) marcFields[`${tag}$c`] = dateSubfield.c;
+                        }
+                    }
+                }
+            });
+            return marcFields;
+        }
+
+        function displayResults(instances) {
+            const resultsDiv = document.getElementById('resultsTable');
+            const summaryTextDiv = document.getElementById('summaryText');
+
+            const cols = {
+                title: document.getElementById('colTitle').checked,
+                id: document.getElementById('colId').checked,
+                hrid: document.getElementById('colHrid').checked,
+                subjects: document.getElementById('colSubjects').checked,
+                electronic: document.getElementById('colElectronic').checked,
+                srsId: document.getElementById('colSrsId').checked,
+                marc020: document.getElementById('colMarc020').checked,
+                marc090: document.getElementById('colMarc090').checked,
+                marc100: document.getElementById('colMarc100').checked,
+                marc245: document.getElementById('colMarc245').checked,
+                marc250: document.getElementById('colMarc250').checked,
+                marc260: document.getElementById('colMarc260').checked,
+                marc260c: document.getElementById('colMarc260c').checked,
+                marc264: document.getElementById('colMarc264').checked,
+                marc264c: document.getElementById('colMarc264c').checked,
+                marc300: document.getElementById('colMarc300').checked,
+                marc650: document.getElementById('colMarc650').checked
+            };
+
+            const start = currentPage * pageSize + 1;
+            const end = Math.min((currentPage + 1) * pageSize, totalRecords);
+            summaryTextDiv.textContent = `Showing ${start} to ${end} of ${totalRecords} results`;
+
+            if (instances.length === 0) {
+                resultsDiv.innerHTML = '<p>No results found for this page.</p>';
+                return;
+            }
+
+            let html = '<table><thead><tr>';
+            if (cols.title) html += '<th>Title</th>';
+            if (cols.id) html += '<th>Instance ID</th>';
+            if (cols.hrid) html += '<th>HRID</th>';
+            if (cols.subjects) html += '<th>Subjects</th>';
+            if (cols.electronic) html += '<th>Electronic Access</th>';
+            if (cols.srsId) html += '<th>SRS ID</th>';
+            if (cols.marc020) html += '<th class="marc-field">020</th>';
+            if (cols.marc090) html += '<th class="marc-field">090</th>';
+            if (cols.marc100) html += '<th class="marc-field">100</th>';
+            if (cols.marc245) html += '<th class="marc-field">245</th>';
+            if (cols.marc250) html += '<th class="marc-field">250</th>';
+            if (cols.marc260) html += '<th class="marc-field">260</th>';
+            if (cols.marc260c) html += '<th class="marc-field">260$c</th>';
+            if (cols.marc264) html += '<th class="marc-field">264</th>';
+            if (cols.marc264c) html += '<th class="marc-field">264$c</th>';
+            if (cols.marc300) html += '<th class="marc-field">300</th>';
+            if (cols.marc650) html += '<th class="marc-field">650</th>';
+            html += '</tr></thead><tbody>';
+
+            instances.forEach(instance => {
+                html += '<tr>';
+                if (cols.title) html += `<td>${instance.title || 'N/A'}</td>`;
+                if (cols.id) html += `<td>${instance.id || 'N/A'}</td>`;
+                if (cols.hrid) html += `<td>${instance.hrid || 'N/A'}</td>`;
+                if (cols.subjects) html += `<td>${instance.subjects?.join(', ') || 'None'}</td>`;
+                if (cols.electronic) html += `<td>${instance.hasElectronicAccess ? 'Yes' : 'No'}</td>`;
+                if (cols.srsId) html += `<td>${instance.srsId || 'N/A'}</td>`;
+                if (cols.marc020) html += `<td class="marc-field">${instance.marcFields['020'] || ''}</td>`;
+                if (cols.marc090) html += `<td class="marc-field">${instance.marcFields['090'] || ''}</td>`;
+                if (cols.marc100) html += `<td class="marc-field">${instance.marcFields['100'] || ''}</td>`;
+                if (cols.marc245) html += `<td class="marc-field">${instance.marcFields['245'] || ''}</td>`;
+                if (cols.marc250) html += `<td class="marc-field">${instance.marcFields['250'] || ''}</td>`;
+                if (cols.marc260) html += `<td class="marc-field">${instance.marcFields['260'] || ''}</td>`;
+                if (cols.marc260c) html += `<td class="marc-field">${instance.marcFields['260$c'] || ''}</td>`;
+                if (cols.marc264) html += `<td class="marc-field">${instance.marcFields['264'] || ''}</td>`;
+                if (cols.marc264c) html += `<td class="marc-field">${instance.marcFields['264$c'] || ''}</td>`;
+                if (cols.marc300) html += `<td class="marc-field">${instance.marcFields['300'] || ''}</td>`;
+                if (cols.marc650) html += `<td class="marc-field">${instance.marcFields['650'] || ''}</td>`;
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            resultsDiv.innerHTML = html;
+            console.log('Results table HTML set');
+        }
+
+        function updatePagination() {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.classList.remove('hidden');
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            const maxPagesToShow = 5;
+            let startPage = Math.max(0, currentPage - Math.floor(maxPagesToShow / 2));
+            let endPage = Math.min(totalPages, startPage + maxPagesToShow);
+
+            if (endPage - startPage < maxPagesToShow && startPage > 0) {
+                startPage = Math.max(0, endPage - maxPagesToShow);
+            }
+
+            let html = '<button onclick="changePage(0)" ' + (currentPage === 0 ? 'disabled' : '') + '>First</button>';
+            html += '<button onclick="changePage(' + (currentPage - 1) + ')" ' + (currentPage === 0 ? 'disabled' : '') + '>Previous</button>';
+
+            for (let i = startPage; i < endPage; i++) {
+                html += `<button onclick="changePage(${i})" ${i === currentPage ? 'class="current-page"' : ''}>${i + 1}</button>`;
+            }
+
+            html += '<button onclick="changePage(' + (currentPage + 1) + ')" ' + (currentPage >= totalPages - 1 ? 'disabled' : '') + '>Next</button>';
+            html += '<button onclick="changePage(' + (totalPages - 1) + ')" ' + (currentPage >= totalPages - 1 ? 'disabled' : '') + '>Last</button>';
+            html += `<span>Page ${currentPage + 1} of ${totalPages} (${totalRecords} total records)</span>`;
+
+            paginationDiv.innerHTML = html;
+        }
+
+        window.changePage = function (newPage) {
+            if (newPage >= 0 && newPage < Math.ceil(totalRecords / pageSize)) {
+                currentPage = newPage;
+                fetchPage(currentPage);
+            }
+        };
+
+        // Add event listener for Select/Unselect All MARC Fields checkbox
+        document.getElementById('selectAllMarc').addEventListener('change', function () {
+            const marcCheckboxes = [
+                'colMarc020', 'colMarc090', 'colMarc100', 'colMarc245', 'colMarc250',
+                'colMarc260', 'colMarc260c', 'colMarc264', 'colMarc264c', 'colMarc300', 'colMarc650'
+            ];
+            const isChecked = this.checked;
+            marcCheckboxes.forEach(id => {
+                document.getElementById(id).checked = isChecked;
+            });
+            if (currentQuery) fetchPage(currentPage); // Refresh results if a query exists
+        });
+
+        document.querySelectorAll('.column-select input').forEach(checkbox => {
+            if (checkbox.id !== 'selectAllMarc') { // Exclude the select all checkbox from individual refresh
+                checkbox.addEventListener('change', () => {
+                    if (currentQuery) fetchPage(currentPage);
+                });
+            }
+        });
+
+        function exportToCSV() {
+            const cols = {
+                title: document.getElementById('colTitle').checked,
+                id: document.getElementById('colId').checked,
+                hrid: document.getElementById('colHrid').checked,
+                subjects: document.getElementById('colSubjects').checked,
+                electronic: document.getElementById('colElectronic').checked,
+                srsId: document.getElementById('colSrsId').checked,
+                marc020: document.getElementById('colMarc020').checked,
+                marc090: document.getElementById('colMarc090').checked,
+                marc100: document.getElementById('colMarc100').checked,
+                marc245: document.getElementById('colMarc245').checked,
+                marc250: document.getElementById('colMarc250').checked,
+                marc260: document.getElementById('colMarc260').checked,
+                marc260c: document.getElementById('colMarc260c').checked,
+                marc264: document.getElementById('colMarc264').checked,
+                marc264c: document.getElementById('colMarc264c').checked,
+                marc300: document.getElementById('colMarc300').checked,
+                marc650: document.getElementById('colMarc650').checked
+            };
+
+            let csv = [];
+            let headers = [];
+            if (cols.title) headers.push('Title');
+            if (cols.id) headers.push('Instance ID');
+            if (cols.hrid) headers.push('HRID');
+            if (cols.subjects) headers.push('Subjects');
+            if (cols.electronic) headers.push('Electronic Access');
+            if (cols.srsId) headers.push('SRS ID');
+            if (cols.marc020) headers.push('020');
+            if (cols.marc090) headers.push('090');
+            if (cols.marc100) headers.push('100');
+            if (cols.marc245) headers.push('245');
+            if (cols.marc250) headers.push('250');
+            if (cols.marc260) headers.push('260');
+            if (cols.marc260c) headers.push('260$c');
+            if (cols.marc264) headers.push('264');
+            if (cols.marc264c) headers.push('264$c');
+            if (cols.marc300) headers.push('300');
+            if (cols.marc650) headers.push('650');
+
+            csv.push(headers.join(','));
+
+            currentResults.forEach(instance => {
+                let row = [];
+                if (cols.title) row.push(`"${instance.title.replace(/"/g, '""')}"`);
+                if (cols.id) row.push(`"${instance.id}"`);
+                if (cols.hrid) row.push(`"${instance.hrid || 'N/A'}"`);
+                if (cols.subjects) row.push(`"${instance.subjects?.join('; ') || 'None'}"`);
+                if (cols.electronic) row.push(`"${instance.hasElectronicAccess ? 'Yes' : 'No'}"`);
+                if (cols.srsId) row.push(`"${instance.srsId}"`);
+                if (cols.marc020) row.push(`"${instance.marcFields['020_raw'] || instance.marcFields['020'] || ''}"`);
+                if (cols.marc090) row.push(`"${instance.marcFields['090_raw'] || instance.marcFields['090'] || ''}"`);
+                if (cols.marc100) row.push(`"${instance.marcFields['100_raw'] || instance.marcFields['100'] || ''}"`);
+                if (cols.marc245) row.push(`"${instance.marcFields['245_raw'] || instance.marcFields['245'] || ''}"`);
+                if (cols.marc250) row.push(`"${instance.marcFields['250_raw'] || instance.marcFields['250'] || ''}"`);
+                if (cols.marc260) row.push(`"${instance.marcFields['260_raw'] || instance.marcFields['260'] || ''}"`);
+                if (cols.marc260c) row.push(`"${instance.marcFields['260$c'] || ''}"`);
+                if (cols.marc264) row.push(`"${instance.marcFields['264_raw'] || instance.marcFields['264'] || ''}"`);
+                if (cols.marc264c) row.push(`"${instance.marcFields['264$c'] || ''}"`);
+                if (cols.marc300) row.push(`"${instance.marcFields['300_raw'] || instance.marcFields['300'] || ''}"`);
+                if (cols.marc650) row.push(`"${instance.marcFields['650_raw'] || instance.marcFields['650'] || ''}"`);
+                csv.push(row.join(','));
+            });
+
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `folio_search_results_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function exportToJSON() {
+            const cols = {
+                title: document.getElementById('colTitle').checked,
+                id: document.getElementById('colId').checked,
+                hrid: document.getElementById('colHrid').checked,
+                subjects: document.getElementById('colSubjects').checked,
+                electronic: document.getElementById('colElectronic').checked,
+                srsId: document.getElementById('colSrsId').checked,
+                marc020: document.getElementById('colMarc020').checked,
+                marc090: document.getElementById('colMarc090').checked,
+                marc100: document.getElementById('colMarc100').checked,
+                marc245: document.getElementById('colMarc245').checked,
+                marc250: document.getElementById('colMarc250').checked,
+                marc260: document.getElementById('colMarc260').checked,
+                marc260c: document.getElementById('colMarc260c').checked,
+                marc264: document.getElementById('colMarc264').checked,
+                marc264c: document.getElementById('colMarc264c').checked,
+                marc300: document.getElementById('colMarc300').checked,
+                marc650: document.getElementById('colMarc650').checked
+            };
+
+            const jsonData = currentResults.map(instance => {
+                let obj = {};
+                if (cols.title) obj.title = instance.title;
+                if (cols.id) obj.instanceId = instance.id;
+                if (cols.hrid) obj.hrid = instance.hrid || 'N/A';
+                if (cols.subjects) obj.subjects = instance.subjects || [];
+                if (cols.electronic) obj.electronicAccess = instance.hasElectronicAccess ? 'Yes' : 'No';
+                if (cols.srsId) obj.srsId = instance.srsId;
+                if (cols.marc020) obj['marc_020'] = instance.marcFields['020'] || '';
+                if (cols.marc090) obj['marc_090'] = instance.marcFields['090'] || '';
+                if (cols.marc100) obj['marc_100'] = instance.marcFields['100'] || '';
+                if (cols.marc245) obj['marc_245'] = instance.marcFields['245'] || '';
+                if (cols.marc250) obj['marc_250'] = instance.marcFields['250'] || '';
+                if (cols.marc260) obj['marc_260'] = instance.marcFields['260'] || '';
+                if (cols.marc260c) obj['marc_260c'] = instance.marcFields['260$c'] || '';
+                if (cols.marc264) obj['marc_264'] = instance.marcFields['264'] || '';
+                if (cols.marc264c) obj['marc_264c'] = instance.marcFields['264$c'] || '';
+                if (cols.marc300) obj['marc_300'] = instance.marcFields['300'] || '';
+                if (cols.marc650) obj['marc_650'] = instance.marcFields['650'] || '';
+                return obj;
+            });
+
+            const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `folio_search_results_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
