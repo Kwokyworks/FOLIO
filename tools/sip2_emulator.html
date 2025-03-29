@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SIP2 Test Tool</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label { display: block; margin: 5px 0; }
+    input[type="text"], input[type="password"], input[type="number"] { width: 200px; }
+    #result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>SIP2 Test Tool</h1>
+  <form id="sip2Form" onsubmit="testSIP2(event)">
+    <h3>Server Configuration</h3>
+    <label>Host: <input type="text" name="host" required placeholder="e.g., your.sip2.server.com"></label>
+    <label>Port: <input type="number" name="port" required placeholder="e.g., 6001"></label>
+    <label>Login User ID: <input type="text" name="loginUserId" required></label>
+    <label>Login Password: <input type="password" name="loginPassword" required></label>
+    <label>Location Code: <input type="text" name="locationCode" required></label>
+
+    <h3>Action</h3>
+    <label><input type="radio" name="action" value="patronInfo" checked> Get Patron Information</label>
+    <label><input type="radio" name="action" value="checkout"> Checkout Item</label>
+
+    <h3>Patron/Item Details</h3>
+    <label>Patron ID: <input type="text" name="patronId" required></label>
+    <label>Patron Password: <input type="password" name="patronPassword" required></label>
+    <label>Item Barcode (for checkout): <input type="text" name="itemBarcode" placeholder="Leave blank for patron info"></label>
+
+    <button type="submit">Test SIP2 Endpoint</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    // Calculate SIP2 checksum
+    function calculateChecksum(message) {
+      let sum = 0;
+      for (let i = 0; i < message.length; i++) {
+        sum += message.charCodeAt(i);
+      }
+      sum = (sum & 0xFFFF);
+      return sum.toString(16).toUpperCase().padStart(4, '0');
+    }
+
+    // Format SIP2 message with sequence and checksum
+    function formatSIP2Message(command, sequence = 0) {
+      const sequenceChar = String.fromCharCode(48 + sequence);
+      const message = `${command}|AY${sequenceChar}`;
+      const checksum = calculateChecksum(message + '\r');
+      return `${message}AZ${checksum}\r`;
+    }
+
+    // Get current timestamp in SIP2 format (YYYYMMDD    HHMMSS)
+    function getCurrentTimestamp() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${year}${month}${day}    ${hours}${minutes}${seconds}`;
+    }
+
+    // Mock SIP2 request (replace with WebSocket/HTTP if available)
+    function mockSIP2Request(message) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          if (message.startsWith('93')) {
+            resolve('941AY1AZ1234\r'); // Mock successful login
+          } else if (message.startsWith('63')) {
+            resolve('64Y20250329    0000AO|AApatronId123|BLJohn Doe|AY2AZ5678\r'); // Mock patron info
+          } else if (message.startsWith('11')) {
+            resolve('12Y20250329    0000AO|AApatronId123|AB123456789|AY2AZ9ABC\r'); // Mock checkout
+          } else {
+            resolve('Error: Unknown request');
+          }
+        }, 500); // Simulate network delay
+      });
+    }
+
+    // Main function to test SIP2
+    async function testSIP2(event) {
+      event.preventDefault();
+      const form = document.getElementById('sip2Form');
+      const formData = new FormData(form);
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = 'Processing...';
+
+      const config = {
+        host: formData.get('host'),
+        port: formData.get('port'),
+        loginUserId: formData.get('loginUserId'),
+        loginPassword: formData.get('loginPassword'),
+        locationCode: formData.get('locationCode'),
+        action: formData.get('action'),
+        patronId: formData.get('patronId'),
+        patronPassword: formData.get('patronPassword'),
+        itemBarcode: formData.get('itemBarcode')
+      };
+
+      try {
+        // Step 1: Login
+        const loginMessage = `9300CN${config.loginUserId}|CO${config.loginPassword}|CP${config.locationCode}`;
+        const formattedLogin = formatSIP2Message(loginMessage, 1);
+        const loginResponse = await mockSIP2Request(formattedLogin); // Replace with real request
+
+        let result = '';
+        if (loginResponse.startsWith('94') && loginResponse.charAt(2) === '1') {
+          result += 'Login successful!<br>';
+
+          if (config.action === 'patronInfo') {
+            // Step 2: Patron Information
+            const timestamp = getCurrentTimestamp();
+            const patronMessage = `630001${timestamp}AO|AA${config.patronId}|AD${config.patronPassword}`;
+            const formattedPatron = formatSIP2Message(patronMessage, 2);
+            const patronResponse = await mockSIP2Request(formattedPatron);
+            result += `Patron Information Response: ${patronResponse}<br>`;
+          } else if (config.action === 'checkout') {
+            // Step 2: Checkout Item
+            const timestamp = getCurrentTimestamp();
+            const checkoutMessage = `11YN${timestamp}${timestamp}AO|AA${config.patronId}|AB${config.itemBarcode}|AD${config.patronPassword}`;
+            const formattedCheckout = formatSIP2Message(checkoutMessage, 2);
+            const checkoutResponse = await mockSIP2Request(formattedCheckout);
+            result += `Checkout Response: ${checkoutResponse}<br>`;
+          }
+        } else {
+          result += `Login failed: ${loginResponse}<br>`;
+        }
+        resultDiv.innerHTML = result;
+      } catch (err) {
+        resultDiv.innerHTML = `Error: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
