@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kwoky Creating Users</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 20px 0;
+            width: 100%;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f8f8;
+            font-weight: 600;
+        }
+        .form-container {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-container h2 {
+            margin-top: 0;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #output {
+            margin: 20px 0;
+        }
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .loading {
+            padding: 15px;
+            color: #fff;
+            background: #6c757d;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 3px solid #fff;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .success {
+            color: #155724;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .checkbox-container {
+            margin: 15px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background: #0056b3;
+        }
+        .results-table {
+            width: 100%;
+            margin: 15px 0;
+        }
+        #failedUsers {
+            margin-top: 15px;
+        }
+        #authForm {
+            display: grid;
+            gap: 15px;
+            max-width: 400px;
+        }
+        #authForm label {
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+            color: #555;
+        }
+        #authForm input[type="text"],
+        #authForm input[type="password"],
+        #authForm select {
+            padding: 10px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        #authForm button {
+            justify-self: start;
+            margin-top: 10px;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        @media (max-width: 600px) {
+            #authForm {
+                max-width: 100%;
+            }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>FOLIO User Import and Delete Application</h2>
+        <form id="authForm">
+            <label>
+                Tenant URL
+                <select id="tenantUrl" required>
+                    <option value="https://okapi-demo.folio.ebsco.com" data-tenant-id="fs00000002">Demo</option>
+                    <option value="https://okapi-demo1.folio.ebsco.com" data-tenant-id="idksoguess">Demo 1</option>
+                    <option value="https://okapi-demo2.folio.ebsco.com" data-tenant-id="fs00001176" selected>Demo 2</option>
+                </select>
+            </label>
+            <label>
+                Tenant ID
+                <input type="text" id="tenantId" required value="fs00001176" readonly>
+            </label>
+            <label>
+                Username
+                <input type="text" id="username" required>
+            </label>
+            <label>
+                Password
+                <input type="password" id="password" required>
+            </label>
+            <button type="submit">Authenticate</button>
+        </form>
+    </div>
+
+    <div class="form-container">
+        <h2>Upload CSV File</h2>
+        <input type="file" id="csvFile" accept=".csv" disabled>
+        <div class="checkbox-container">
+            <label><input type="checkbox" id="deactivateMissingUsers" disabled> Deactivate Missing Users</label>
+        </div>
+        <div class="checkbox-container">
+            <label><input type="checkbox" id="updateOnlyPresentFields" checked disabled> Update Only Present Fields</label>
+        </div>
+        <div class="checkbox-container">
+            <label><input type="checkbox" id="deleteUsers" disabled> Delete Users from CSV</label>
+        </div>
+        <button id="importBtn" disabled>Import to FOLIO</button>
+        <button id="downloadTemplate">Download Sample CSV</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        let parsedData = null;
+        let authToken = null;
+        let tenantUrl = null;
+
+        // Link Tenant URL dropdown with Tenant ID
+        document.getElementById('tenantUrl').addEventListener('change', function() {
+            const tenantIdInput = document.getElementById('tenantId');
+            const selectedOption = this.options[this.selectedIndex];
+            tenantIdInput.value = selectedOption.getAttribute('data-tenant-id');
+        });
+
+        // Authentication handling
+        document.getElementById('authForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const url = document.getElementById('tenantUrl').value;
+            const tenantId = document.getElementById('tenantId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                document.getElementById('output').innerHTML = '<div class="loading">Authenticating...</div>';
+                
+                const response = await fetch(`${url}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) throw new Error('Authentication failed');
+                
+                const data = await response.json();
+                authToken = response.headers.get('x-okapi-token') || data.okapiToken;
+                tenantUrl = url;
+                
+                document.getElementById('output').innerHTML = '<div class="success">Authentication successful</div>';
+                document.getElementById('csvFile').disabled = false;
+                document.getElementById('importBtn').disabled = false;
+                document.getElementById('deactivateMissingUsers').disabled = false;
+                document.getElementById('updateOnlyPresentFields').disabled = false;
+                document.getElementById('deleteUsers').disabled = false;
+            } catch (error) {
+                displayError(error.message);
+            }
+        });
+
+        // Download template
+        document.getElementById('downloadTemplate').addEventListener('click', function() {
+            const headers = [
+                'active',
+                'username',
+                'type',
+                'patronGroup',
+                'expirationDate',
+                'externalSystemId',
+                'barcode',
+                'lastName',
+                'firstName',
+                'email',
+                'preferredContactTypeId'
+            ];
+            
+            const csvContent = headers.join(',') + '\n';
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'folio_user_template.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // File handling
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                displayError('No file selected');
+                return;
+            }
+
+            const maxSize = 10 * 1024 * 1024; // 10MB limit
+            if (file.size > maxSize) {
+                displayError('File too large (max 10MB)');
+                return;
+            }
+
+            if (!file.name.endsWith('.csv')) {
+                displayError('Please upload a valid CSV file');
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onloadstart = function() {
+                document.getElementById('output').innerHTML = '<div class="loading">Loading file...</div>';
+            };
+
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    if (!text || text.trim() === '') {
+                        throw new Error('File is empty');
+                    }
+                    parsedData = parseCSV(text);
+                    if (parsedData.length <= 1) {
+                        throw new Error('No valid data found in CSV file');
+                    }
+                    displayData(parsedData);
+                } catch (error) {
+                    displayError(error.message);
+                }
+            };
+
+            reader.onerror = function() {
+                displayError('Error reading the file');
+            };
+
+            reader.readAsText(file);
+        });
+
+        // Validate ISO 8601 date format
+        function isValidDate(dateString) {
+            if (!dateString || dateString.trim() === '') return true;
+            const iso8601 = /^\d{4}-\d{2}-\d{2}$/;
+            return iso8601.test(dateString);
+        }
+
+        // Validate email format
+        function isValidEmail(email) {
+            if (!email || email.trim() === '') return true;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // Import or Delete to FOLIO
+        document.getElementById('importBtn').addEventListener('click', async function() {
+            if (!parsedData || !authToken) {
+                displayError('Please authenticate and upload a CSV file first');
+                return;
+            }
+
+            const deleteUsers = document.getElementById('deleteUsers').checked;
+            const headers = parsedData[0].map(h => h.toLowerCase().trim());
+            const usernameIndex = headers.indexOf('username');
+            const tenantId = document.getElementById('tenantId').value;
+
+            try {
+                if (deleteUsers) {
+                    document.getElementById('output').innerHTML = '<div class="loading">Deleting users from FOLIO...</div>';
+                    const usernames = parsedData.slice(1)
+                        .filter(row => row[usernameIndex] && row[usernameIndex].trim())
+                        .map(row => row[usernameIndex].trim());
+                    
+                    if (usernames.length === 0) {
+                        throw new Error('No valid usernames found in CSV for deletion');
+                    }
+
+                    const deleteResults = {
+                        totalRecords: usernames.length,
+                        deletedRecords: 0,
+                        failedRecords: 0,
+                        failedUsers: []
+                    };
+
+                    for (const username of usernames) {
+                        try {
+                            // First, fetch the user ID by username
+                            const userResponse = await fetch(`${tenantUrl}/users?query=username==${encodeURIComponent(username)}`, {
+                                method: 'GET',
+                                headers: {
+                                    'X-Okapi-Tenant': tenantId,
+                                    'X-Okapi-Token': authToken,
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+
+                            if (!userResponse.ok) throw new Error(`Failed to fetch user ${username}`);
+                            const userData = await userResponse.json();
+                            if (!userData.users || userData.users.length === 0) {
+                                throw new Error(`User ${username} not found`);
+                            }
+
+                            const userId = userData.users[0].id;
+
+                            // Delete the user by ID
+                            const deleteResponse = await fetch(`${tenantUrl}/users/${userId}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-Okapi-Tenant': tenantId,
+                                    'X-Okapi-Token': authToken
+                                }
+                            });
+
+                            if (!deleteResponse.ok) {
+                                const errorText = await deleteResponse.text();
+                                throw new Error(errorText);
+                            }
+
+                            deleteResults.deletedRecords++;
+                        } catch (error) {
+                            deleteResults.failedRecords++;
+                            deleteResults.failedUsers.push({
+                                username,
+                                errorMessage: error.message
+                            });
+                        }
+                    }
+
+                    displayDeleteResults(deleteResults);
+                } else {
+                    document.getElementById('output').innerHTML = '<div class="loading">Importing to FOLIO...</div>';
+
+                    const fieldMap = {
+                        active: headers.indexOf('active'),
+                        username: usernameIndex,
+                        type: headers.indexOf('type'),
+                        patronGroup: headers.indexOf('patrongroup'),
+                        expirationDate: headers.indexOf('expirationdate'),
+                        externalSystemId: headers.indexOf('externalsystemid'),
+                        barcode: headers.indexOf('barcode'),
+                        lastName: headers.indexOf('lastname'),
+                        firstName: headers.indexOf('firstname'),
+                        email: headers.indexOf('email'),
+                        preferredContactTypeId: headers.indexOf('preferredcontacttypeid')
+                    };
+
+                    const users = [];
+                    const validationErrors = [];
+                    const originalRows = new Map();
+                    
+                    parsedData.slice(1).forEach((row, index) => {
+                        const user = { type: "patron" };
+                        let isValid = true;
+
+                        if (fieldMap.active !== -1) user.active = row[fieldMap.active].toLowerCase() === 'true';
+                        if (fieldMap.username !== -1) {
+                            user.username = row[fieldMap.username] || '';
+                            if (!row[fieldMap.username] && !row.some(cell => cell.trim())) {
+                                isValid = false;
+                                validationErrors.push(`Row ${index + 2}: No data provided`);
+                            }
+                        }
+                        if (fieldMap.type !== -1) user.type = row[fieldMap.type];
+                        if (fieldMap.patronGroup !== -1) {
+                            const patronGroupValue = row[fieldMap.patronGroup]?.trim();
+                            user.patronGroup = patronGroupValue === '' ? null : patronGroupValue;
+                        }
+                        if (fieldMap.expirationDate !== -1) {
+                            const dateValue = row[fieldMap.expirationDate];
+                            if (dateValue && !isValidDate(dateValue)) {
+                                isValid = false;
+                                validationErrors.push(`Row ${index + 2}: Invalid expirationDate format (${dateValue}). Use YYYY-MM-DD`);
+                            } else if (dateValue) {
+                                user.expirationDate = dateValue;
+                            }
+                        }
+                        if (fieldMap.externalSystemId !== -1) user.externalSystemId = row[fieldMap.externalSystemId];
+                        if (fieldMap.barcode !== -1) user.barcode = row[fieldMap.barcode];
+
+                        if (fieldMap.lastName !== -1 || fieldMap.firstName !== -1 || 
+                            fieldMap.email !== -1 || fieldMap.preferredContactTypeId !== -1) {
+                            user.personal = {};
+                            if (fieldMap.lastName !== -1) user.personal.lastName = row[fieldMap.lastName];
+                            if (fieldMap.firstName !== -1) user.personal.firstName = row[fieldMap.firstName];
+                            if (fieldMap.email !== -1) {
+                                const emailValue = row[fieldMap.email];
+                                if (emailValue && !isValidEmail(emailValue)) {
+                                    isValid = false;
+                                    validationErrors.push(`Row ${index + 2}: Invalid email format (${emailValue})`);
+                                } else if (emailValue) {
+                                    user.personal.email = emailValue;
+                                }
+                            }
+                            if (fieldMap.preferredContactTypeId !== -1) 
+                                user.personal.preferredContactTypeId = row[fieldMap.preferredContactTypeId];
+                        }
+
+                        if (isValid) {
+                            users.push(user);
+                            originalRows.set(user.username, row);
+                        }
+                    });
+
+                    if (users.length === 0) {
+                        let errorMessage = 'No valid users to import after validation';
+                        if (validationErrors.length > 0) {
+                            errorMessage += '<ul>' + validationErrors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    const requestBody = {
+                        users: users,
+                        totalRecords: users.length,
+                        deactivateMissingUsers: document.getElementById('deactivateMissingUsers').checked,
+                        updateOnlyPresentFields: document.getElementById('updateOnlyPresentFields').checked
+                    };
+
+                    const response = await fetch(`${tenantUrl}/user-import`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Okapi-Tenant': tenantId,
+                            'X-Okapi-Token': authToken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Import failed: ${errorText}`);
+                    }
+                    
+                    const result = await response.json();
+                    displayImportResults(result, validationErrors, headers, originalRows);
+                }
+            } catch (error) {
+                displayError(error.message);
+            }
+        });
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const result = [];
+            let columnCount = -1;
+
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                const row = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+
+                if (inQuotes) throw new Error(`Unterminated quote in line ${i + 1}`);
+                row.push(current.trim());
+
+                if (row.length === 1 && row[0] === '') continue;
+
+                if (columnCount === -1) {
+                    columnCount = row.length;
+                } else if (row.length !== columnCount) {
+                    throw new Error(`Inconsistent column count at line ${i + 1}`);
+                }
+
+                result.push(row);
+            }
+            return result;
+        }
+
+        function displayData(data) {
+            let html = '<table>';
+            html += '<tr>' + data[0].map(header => `<th>${escapeHtml(header)}</th>`).join('') + '</tr>';
+            for (let i = 1; i < data.length; i++) {
+                html += '<tr>' + data[i].map(cell => `<td>${escapeHtml(cell)}</td>`).join('') + '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('output').innerHTML = html;
+        }
+
+        function displayImportResults(result, validationErrors, headers, originalRows) {
+            let html = '<div class="success">Import Completed</div>';
+            html += `<p>${escapeHtml(result.message || 'No message provided')}</p>`;
+            html += '<table class="results-table">';
+            html += '<tr><th>Metric</th><th>Value</th></tr>';
+            
+            html += `<tr><td>Total Records Processed</td><td>${result.totalRecords || 'N/A'}</td></tr>`;
+            html += `<tr><td>Users Created</td><td>${result.createdRecords || 0}</td></tr>`;
+            html += `<tr><td>Users Updated</td><td>${result.updatedRecords || 0}</td></tr>`;
+            html += `<tr><td>Users Failed</td><td>${result.failedRecords || 0}</td></tr>`;
+            
+            if (result.deactivatedRecords !== undefined) {
+                html += `<tr><td>Users Deactivated</td><td>${result.deactivatedRecords}</td></tr>`;
+            }
+            html += '</table>';
+
+            if (result.failedRecords > 0 && result.failedUsers && result.failedUsers.length > 0) {
+                html += '<div id="failedUsers">';
+                html += '<h3>Failed Users</h3>';
+                html += '<table>';
+                html += '<tr><th>Username</th><th>External System ID</th><th>Error Message</th><th>Original Data</th></tr>';
+                
+                result.failedUsers.forEach(failedUser => {
+                    const username = failedUser.username || 'N/A';
+                    const externalSystemId = failedUser.externalSystemId || 'N/A';
+                    const errorMessage = failedUser.errorMessage || 'Unknown error';
+                    const originalRow = originalRows.has(username) ? originalRows.get(username).join(', ') : 'Not found';
+                    
+                    html += '<tr>';
+                    html += `<td>${escapeHtml(username)}</td>`;
+                    html += `<td>${escapeHtml(externalSystemId)}</td>`;
+                    html += `<td>${escapeHtml(errorMessage)}</td>`;
+                    html += `<td>${escapeHtml(originalRow)}</td>`;
+                    html += '</tr>';
+                });
+                html += '</table>';
+                html += '</div>';
+            }
+
+            if (validationErrors.length > 0) {
+                html += '<div class="error">Validation Errors Before Import:<ul>';
+                html += validationErrors.map(err => `<li>${err}</li>`).join('');
+                html += '</ul></div>';
+            }
+
+            document.getElementById('output').innerHTML = html;
+        }
+
+        function displayDeleteResults(result) {
+            let html = '<div class="success">Deletion Completed</div>';
+            html += '<table class="results-table">';
+            html += '<tr><th>Metric</th><th>Value</th></tr>';
+            html += `<tr><td>Total Records Processed</td><td>${result.totalRecords}</td></tr>`;
+            html += `<tr><td>Users Deleted</td><td>${result.deletedRecords}</td></tr>`;
+            html += `<tr><td>Users Failed</td><td>${result.failedRecords}</td></tr>`;
+            html += '</table>';
+
+            if (result.failedRecords > 0 && result.failedUsers.length > 0) {
+                html += '<div id="failedUsers">';
+                html += '<h3>Failed Deletions</h3>';
+                html += '<table>';
+                html += '<tr><th>Username</th><th>Error Message</th></tr>';
+                
+                result.failedUsers.forEach(failedUser => {
+                    html += '<tr>';
+                    html += `<td>${escapeHtml(failedUser.username)}</td>`;
+                    html += `<td>${escapeHtml(failedUser.errorMessage)}</td>`;
+                    html += '</tr>';
+                });
+                html += '</table>';
+                html += '</div>';
+            }
+
+            document.getElementById('output').innerHTML = html;
+        }
+
+        function escapeHtml(unsafe) {
+            return String(unsafe)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function displayError(message) {
+            document.getElementById('output').innerHTML = 
+                `<div class="error">Error: ${escapeHtml(message)}</div>`;
+        }
+    </script>
+</body>
+</html>
