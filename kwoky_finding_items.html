@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Inventory - Items Export Application</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            width: 95%;
+            margin: 0 auto;
+            padding: 2vw;
+            background: #f8f9fa;
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 1vw;
+            font-size: clamp(1.5rem, 3vw, 2rem);
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 2vw;
+            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+        }
+
+        .form-container,
+        .auth-container {
+            background: white;
+            padding: 2vw;
+            border-radius: 0.5vw;
+            box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.1);
+            margin-bottom: 2vw;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .sort-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1vw;
+            align-items: center;
+            margin-bottom: 1vw;
+        }
+
+        .column-select {
+            margin-bottom: 1vw;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(200px, 30vw), 1fr));
+            gap: 1vw;
+            padding: 1vw;
+            border: 1px solid #ddd;
+            border-radius: 0.4vw;
+            background: #fafafa;
+        }
+
+        .column-select label {
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            margin: 0;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        label {
+            display: block;
+            margin: 1vw 0 0.5vw;
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            max-width: 400px; /* Prevent full-screen expansion */
+            padding: 0.8vw;
+            margin-bottom: 1vw;
+            border: 1px solid #ddd;
+            border-radius: 0.4vw;
+            box-sizing: border-box;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        select[multiple] {
+            height: 12vw;
+            max-width: 400px; /* Consistent with other inputs */
+            background: #fff;
+            min-height: 100px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            padding: 0.8vw 1.6vw;
+            border: none;
+            border-radius: 0.4vw;
+            cursor: pointer;
+            margin: 0.5vw;
+            transition: background 0.3s;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #toggleAllBtn {
+            background: #2ecc71;
+            margin-left: 0;
+        }
+
+        #toggleAllBtn:hover {
+            background: #27ae60;
+        }
+
+        #logoutBtn {
+            background: #e74c3c;
+        }
+
+        #logoutBtn:hover {
+            background: #c0392b;
+        }
+
+        .tooltip {
+            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+            color: #7f8c8d;
+            display: block;
+            margin-bottom: 1vw;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+        }
+
+        .loading {
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+        }
+
+        #results {
+            background: white;
+            padding: 1.5vw;
+            border-radius: 0.5vw;
+            box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.1);
+            margin-top: 2vw;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5vw;
+        }
+
+        th,
+        td {
+            padding: 1vw;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+            font-weight: 500;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:hover {
+            background: #ecf0f1;
+        }
+
+        .pagination {
+            margin: 1.5vw 0;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5vw;
+        }
+
+        .pagination button {
+            margin: 0 0.3vw;
+            padding: 0.6vw 1.2vw;
+            min-width: 3vw;
+            font-size: clamp(0.8rem, 1.5vw, 1rem);
+        }
+
+        p {
+            margin: 0 0 1.5vw;
+            color: #2c3e50;
+            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 4vw;
+            }
+
+            .form-container,
+            .auth-container {
+                padding: 3vw;
+            }
+
+            .column-select {
+                grid-template-columns: 1fr;
+            }
+
+            button {
+                width: 100%;
+                margin: 0.5vw 0;
+            }
+
+            .sort-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            input[type="text"],
+            input[type="password"],
+            select {
+                max-width: 100%; /* Full width on mobile, but not exceeding container */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>FOLIO Inventory Export Application</h1>
+    <div class="auth-container">
+        <h2>Authentication</h2>
+        <label for="baseUrl">FOLIO Instance:</label>
+        <select id="baseUrl" onchange="updateTenantId()">
+            <option value="https://okapi-demo.folio.ebsco.com" data-tenant="fs00000002">Demo</option>
+            <option value="https://okapi-demo1.folio.ebsco.com" data-tenant="idksoguess">Demo 1</option>
+            <option value="https://okapi-demo2.folio.ebsco.com" data-tenant="fs00001176">Demo 2</option>
+            <option value="https://folio-org.okapi.us" data-tenant="folio_org">FOLIO Org</option>
+            <option value="https://folio-snapshot.okapi.us" data-tenant="folio_snapshot">FOLIO Snapshot</option>
+        </select>
+        <label for="tenantId">Tenant ID:</label>
+        <input type="text" id="tenantId" placeholder="e.g., fs00001234" required>
+        <label for="username">Username:</label>
+        <input type="text" id="username" placeholder="e.g., admin" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" placeholder="Enter password" required>
+        <div>
+            <button onclick="login()">Login</button>
+            <button id="logoutBtn" onclick="logout()" style="display: none;">Logout</button>
+        </div>
+        <div id="authStatus"></div>
+    </div>
+
+    <div id="searchSection" class="form-container" style="display: none;">
+        <h2>Search Parameters</h2>
+        <label for="startRange">Start DDC Call Number (Optional):</label>
+        <input type="text" id="startRange" placeholder="e.g., 510.76">
+        <label for="endRange">End DDC Call Number (Optional):</label>
+        <input type="text" id="endRange" placeholder="e.g., 510.8">
+        <span class="tooltip">Tip: Use numeric format (e.g., 510.76). Note: 510.10 sorts before 510.2. Leave blank to
+            search all call numbers.</span>
+        <label for="effectiveLocationId">Effective Locations (Ctrl/Cmd + Click for multiple):</label>
+        <select id="effectiveLocationId" multiple>
+            <option value="">All Locations</option>
+        </select>
+        <label for="materialTypeId">Material Types (Ctrl/Cmd + Click for multiple):</label>
+        <select id="materialTypeId" multiple>
+            <option value="">All Material Types</option>
+        </select>
+        <div class="sort-container">
+            <label for="sortBy">Sort By:</label>
+            <select id="sortBy">
+                <option value="callNumber">Call Number</option>
+                <option value="barcode">Barcode</option>
+                <option value="effectiveLocation">Effective Location</option>
+                <option value="materialType">Material Type</option>
+            </select>
+            <label for="sortOrder">Order:</label>
+            <select id="sortOrder">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+        </div>
+        <div>
+            <button onclick="searchItems(0)">Search</button>
+            <button onclick="exportResults()">Export to CSV</button>
+            <button onclick="resetForm()">Reset</button>
+        </div>
+
+        <h2>Search Results</h2>
+        <div class="column-select">
+            <button id="toggleAllBtn" onclick="toggleAllCheckboxes()">Select All</button>
+            <label><input type="checkbox" id="showBarcode" checked onchange="displayPage(0, currentResults.length)">Barcode</label>
+            <label><input type="checkbox" id="showCallNumber" checked onchange="displayPage(0, currentResults.length)">Call Number</label>
+            <label><input type="checkbox" id="showLocation" checked onchange="displayPage(0, currentResults.length)">Effective Location</label>
+            <label><input type="checkbox" id="showMaterialType" checked onchange="displayPage(0, currentResults.length)">Material Type</label>
+            <label><input type="checkbox" id="showHoldingsRecordId" onchange="displayPage(0, currentResults.length)">Holdings Record ID</label>
+            <label><input type="checkbox" id="showShelvingOrder" onchange="displayPage(0, currentResults.length)">Effective Shelving Order</label>
+            <label><input type="checkbox" id="showStatus" onchange="displayPage(0, currentResults.length)">Status</label>
+            <label><input type="checkbox" id="showLoanType" onchange="displayPage(0, currentResults.length)">Permanent Loan Type</label>
+            <label><input type="checkbox" id="showStatisticalCodes" onchange="displayPage(0, currentResults.length)">Statistical Codes</label>
+        </div>
+    </div>
+    <div id="results"></div>
+    <div id="pagination" class="pagination"></div>
+
+    <script>
+        let apiToken = null;
+        let locationMap = {};
+        let materialTypeMap = {};
+        let loanTypeMap = {};
+        let currentResults = [];
+        let baseUrl = '';
+        let tenantId = '';
+        const itemsPerPage = 100;
+
+        function updateTenantId() {
+            const baseUrlSelect = document.getElementById('baseUrl');
+            const tenantIdInput = document.getElementById('tenantId');
+            const selectedOption = baseUrlSelect.options[baseUrlSelect.selectedIndex];
+            tenantIdInput.value = selectedOption.getAttribute('data-tenant');
+        }
+
+        window.onload = function () {
+            updateTenantId();
+        };
+
+        async function login() {
+            baseUrl = document.getElementById('baseUrl').value;
+            tenantId = document.getElementById('tenantId').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const authStatus = document.getElementById('authStatus');
+
+            if (!tenantId || !username || !password) {
+                authStatus.innerHTML = '<span class="error">Please enter tenant ID, username, and password.</span>';
+                return;
+            }
+
+            authStatus.innerHTML = '<span class="loading">Logging in...</span>';
+            try {
+                console.log('Fetching login:', `${baseUrl}/authn/login`);
+                const response = await fetch(`${baseUrl}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Okapi-Tenant': tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Login failed:', response.status, text);
+                    throw new Error(`Login failed: ${response.status} - ${text}`);
+                }
+                apiToken = response.headers.get('X-Okapi-Token');
+
+                console.log('Fetching locations:', `${baseUrl}/locations?limit=5000`);
+                const locationsResponse = await fetch(`${baseUrl}/locations?limit=5000`, {
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (!locationsResponse.ok) {
+                    const text = await locationsResponse.text();
+                    console.error('Locations fetch failed:', locationsResponse.status, text);
+                    throw new Error(`Locations fetch failed: ${locationsResponse.status} - ${text}`);
+                }
+                const locationsData = await locationsResponse.json();
+                const effectiveSelect = document.getElementById('effectiveLocationId');
+
+                const sortedLocations = locationsData.locations.sort((a, b) => {
+                    const nameA = a.name.trim();
+                    const nameB = b.name.trim();
+                    return nameA.localeCompare(nameB);
+                });
+
+                while (effectiveSelect.options.length > 1) {
+                    effectiveSelect.remove(1);
+                }
+
+                sortedLocations.forEach(loc => {
+                    const option = document.createElement('option');
+                    option.value = loc.id;
+                    option.text = loc.name.trim();
+                    effectiveSelect.appendChild(option);
+                    locationMap[loc.id] = loc.name.trim();
+                });
+
+                const materialTypesResponse = await fetch(`${baseUrl}/material-types?limit=5000`, {
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (!materialTypesResponse.ok) {
+                    const text = await materialTypesResponse.text();
+                    console.error('Material types fetch failed:', materialTypesResponse.status, text);
+                    throw new Error(`Material types fetch failed: ${materialTypesResponse.status} - ${text}`);
+                }
+                const materialTypesData = await materialTypesResponse.json();
+                const materialTypeSelect = document.getElementById('materialTypeId');
+
+                const sortedMaterialTypes = materialTypesData.mtypes.sort((a, b) => {
+                    const nameA = a.name.trim();
+                    const nameB = b.name.trim();
+                    return nameA.localeCompare(nameB);
+                });
+
+                while (materialTypeSelect.options.length > 1) {
+                    materialTypeSelect.remove(1);
+                }
+
+                sortedMaterialTypes.forEach(mt => {
+                    const option = document.createElement('option');
+                    option.value = mt.id;
+                    option.text = mt.name.trim();
+                    materialTypeSelect.appendChild(option);
+                    materialTypeMap[mt.id] = mt.name.trim();
+                });
+
+                console.log('Fetching loan types:', `${baseUrl}/loan-types?limit=5000`);
+                const loanTypesResponse = await fetch(`${baseUrl}/loan-types?limit=5000`, {
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (!loanTypesResponse.ok) {
+                    const text = await loanTypesResponse.text();
+                    console.error('Loan types fetch failed:', loanTypesResponse.status, text);
+                    throw new Error(`Loan types fetch failed: ${loanTypesResponse.status} - ${text}`);
+                }
+                const loanTypesData = await loanTypesResponse.json();
+                loanTypesData.loantypes.forEach(lt => {
+                    loanTypeMap[lt.id] = lt.name;
+                });
+
+                authStatus.innerHTML = 'Login successful!';
+                document.getElementById('searchSection').style.display = 'block';
+                document.querySelector('.auth-container').style.display = 'none';
+                document.getElementById('logoutBtn').style.display = 'inline';
+            } catch (error) {
+                console.error('Login error:', error);
+                authStatus.innerHTML = `<span class="error">Error: ${error.message}. Check console for details.</span>`;
+            }
+        }
+
+        function logout() {
+            apiToken = null;
+            baseUrl = '';
+            tenantId = '';
+            locationMap = {};
+            materialTypeMap = {};
+            loanTypeMap = {};
+            document.getElementById('searchSection').style.display = 'none';
+            document.querySelector('.auth-container').style.display = 'block';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('authStatus').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('pagination').innerHTML = '';
+            updateTenantId();
+        }
+
+        function resetForm() {
+            document.getElementById('startRange').value = '';
+            document.getElementById('endRange').value = '';
+            const effectiveSelect = document.getElementById('effectiveLocationId');
+            const materialTypeSelect = document.getElementById('materialTypeId');
+            for (let option of effectiveSelect.options) {
+                option.selected = false;
+            }
+            for (let option of materialTypeSelect.options) {
+                option.selected = false;
+            }
+            document.getElementById('sortBy').value = 'callNumber';
+            document.getElementById('sortOrder').value = 'asc';
+        }
+
+        function toggleAllCheckboxes() {
+            const checkboxes = document.querySelectorAll('.column-select input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            displayPage(0, currentResults.length);
+            document.getElementById('toggleAllBtn').textContent = allChecked ? 'Select All' : 'Unselect All';
+        }
+
+        async function searchItems(offset = 0) {
+            const startRange = document.getElementById('startRange').value.trim();
+            const endRange = document.getElementById('endRange').value.trim();
+            const effectiveSelect = document.getElementById('effectiveLocationId');
+            const materialTypeSelect = document.getElementById('materialTypeId');
+            const sortBy = document.getElementById('sortBy').value;
+            const sortOrder = document.getElementById('sortOrder').value;
+            const selectedLocations = Array.from(effectiveSelect.selectedOptions)
+                .filter(option => option.value !== "")
+                .map(option => option.value);
+            const selectedMaterialTypes = Array.from(materialTypeSelect.selectedOptions)
+                .filter(option => option.value !== "")
+                .map(option => option.value);
+            const resultsDiv = document.getElementById('results');
+
+            const ddcPattern = /^\d{1,3}(\.\d+)?(\s+[A-Z]{1,3}\d+)?$/;
+            const hasCallNumber = startRange || endRange;
+            const hasLocation = selectedLocations.length > 0;
+            const hasMaterialType = selectedMaterialTypes.length > 0;
+
+            if (!hasCallNumber && !hasLocation && !hasMaterialType) {
+                resultsDiv.innerHTML = '<span class="error">Please provide at least one filter: call number range, location, or material type.</span>';
+                return;
+            }
+
+            if (hasCallNumber) {
+                if (!startRange || !endRange) {
+                    resultsDiv.innerHTML = '<span class="error">Both start and end call numbers are required if a range is specified.</span>';
+                    return;
+                }
+                if (!ddcPattern.test(startRange) || !ddcPattern.test(endRange)) {
+                    resultsDiv.innerHTML = '<span class="error">Invalid DDC format. Use 1-3 digits optionally followed by decimal and/or cutter (e.g., 510.76 S55).</span>';
+                    return;
+                }
+                if (parseFloat(startRange) > parseFloat(endRange)) {
+                    resultsDiv.innerHTML = '<span class="error">Start range must be less than end range.</span>';
+                    return;
+                }
+            }
+
+            if (!apiToken || !baseUrl || !tenantId) {
+                resultsDiv.innerHTML = '<span class="error">Please log in first.</span>';
+                return;
+            }
+
+            let cqlQueryParts = [];
+            if (hasCallNumber) {
+                cqlQueryParts.push(`effectiveCallNumberComponents.callNumber >= "${startRange}" AND effectiveCallNumberComponents.callNumber <= "${endRange}"`);
+            }
+            if (hasLocation) {
+                cqlQueryParts.push(`(${selectedLocations.map(loc => `effectiveLocationId=="${loc}"`).join(" OR ")})`);
+            }
+            if (hasMaterialType) {
+                cqlQueryParts.push(`(${selectedMaterialTypes.map(mt => `materialTypeId=="${mt}"`).join(" OR ")})`);
+            }
+            const cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "barcode=*";
+            const itemsUrl = `${baseUrl}/item-storage/items?query=${encodeURIComponent(cqlQuery)}&limit=5000&offset=0`;
+
+            resultsDiv.innerHTML = '<span class="loading">Loading results...</span>';
+            try {
+                console.log('Fetching items:', itemsUrl);
+                const response = await fetch(itemsUrl, {
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Items fetch failed:', response.status, text);
+                    throw new Error(`Items fetch failed: ${response.status} - ${text}`);
+                }
+                const data = await response.json();
+
+                currentResults = data.items
+                    .filter(item => item.barcode && item.effectiveCallNumberComponents?.callNumber)
+                    .map(item => ({
+                        barcode: item.barcode,
+                        callNumber: item.effectiveCallNumberComponents.callNumber,
+                        effectiveLocation: locationMap[item.effectiveLocationId] || item.effectiveLocationId || 'Unknown',
+                        materialType: materialTypeMap[item.materialTypeId] || item.materialTypeId || 'Unknown',
+                        holdingsRecordId: item.holdingsRecordId || 'Unknown',
+                        effectiveShelvingOrder: item.effectiveShelvingOrder || 'N/A',
+                        status: item.status?.name || 'Unknown',
+                        permanentLoanType: loanTypeMap[item.permanentLoanTypeId] || item.permanentLoanTypeId || 'Unknown',
+                        statisticalCodeIds: item.statisticalCodeIds?.join(', ') || 'None'
+                    }))
+                    .sort((a, b) => {
+                        const order = sortOrder === 'asc' ? 1 : -1;
+                        switch (sortBy) {
+                            case 'callNumber':
+                                return order * a.callNumber.localeCompare(b.callNumber);
+                            case 'barcode':
+                                return order * a.barcode.localeCompare(b.barcode);
+                            case 'effectiveLocation':
+                                return order * a.effectiveLocation.localeCompare(b.effectiveLocation);
+                            case 'materialType':
+                                return order * a.materialType.localeCompare(b.materialType);
+                            default:
+                                return 0;
+                        }
+                    });
+
+                displayPage(offset, data.totalRecords);
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = `<span class="error">Error: ${error.message}. Check console for details.</span>`;
+            }
+        }
+
+        function displayPage(offset, totalRecords) {
+            const resultsDiv = document.getElementById('results');
+            const start = offset;
+            const end = Math.min(start + itemsPerPage, currentResults.length);
+            const pageItems = currentResults.slice(start, end);
+
+            const showBarcode = document.getElementById('showBarcode').checked;
+            const showCallNumber = document.getElementById('showCallNumber').checked;
+            const showLocation = document.getElementById('showLocation').checked;
+            const showMaterialType = document.getElementById('showMaterialType').checked;
+            const showHoldingsRecordId = document.getElementById('showHoldingsRecordId').checked;
+            const showShelvingOrder = document.getElementById('showShelvingOrder').checked;
+            const showStatus = document.getElementById('showStatus').checked;
+            const showLoanType = document.getElementById('showLoanType').checked;
+            const showStatisticalCodes = document.getElementById('showStatisticalCodes').checked;
+
+            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType && 
+                !showHoldingsRecordId && !showShelvingOrder && !showStatus && !showLoanType && !showStatisticalCodes) {
+                resultsDiv.innerHTML = '<span class="error">Please select at least one column to display.</span>';
+                updatePagination(offset, totalRecords);
+                return;
+            }
+
+            let tableHtml = `
+                <p>Total Items: ${totalRecords} | Showing ${start + 1}-${end} of ${currentResults.length} items</p>
+                <table>
+                    <tr>
+                        ${showBarcode ? '<th>Barcode</th>' : ''}
+                        ${showCallNumber ? '<th>Call Number</th>' : ''}
+                        ${showLocation ? '<th>Effective Location</th>' : ''}
+                        ${showMaterialType ? '<th>Material Type</th>' : ''}
+                        ${showHoldingsRecordId ? '<th>Holdings Record ID</th>' : ''}
+                        ${showShelvingOrder ? '<th>Effective Shelving Order</th>' : ''}
+                        ${showStatus ? '<th>Status</th>' : ''}
+                        ${showLoanType ? '<th>Permanent Loan Type</th>' : ''}
+                        ${showStatisticalCodes ? '<th>Statistical Codes</th>' : ''}
+                    </tr>
+            `;
+
+            pageItems.forEach(item => {
+                tableHtml += '<tr>';
+                if (showBarcode) tableHtml += `<td>${item.barcode}</td>`;
+                if (showCallNumber) tableHtml += `<td>${item.callNumber}</td>`;
+                if (showLocation) tableHtml += `<td>${item.effectiveLocation}</td>`;
+                if (showMaterialType) tableHtml += `<td>${item.materialType}</td>`;
+                if (showHoldingsRecordId) tableHtml += `<td>${item.holdingsRecordId}</td>`;
+                if (showShelvingOrder) tableHtml += `<td>${item.effectiveShelvingOrder}</td>`;
+                if (showStatus) tableHtml += `<td>${item.status}</td>`;
+                if (showLoanType) tableHtml += `<td>${item.permanentLoanType}</td>`;
+                if (showStatisticalCodes) tableHtml += `<td>${item.statisticalCodeIds}</td>`;
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</table>';
+
+            resultsDiv.innerHTML = tableHtml;
+            updatePagination(offset, totalRecords);
+        }
+
+        function updatePagination(offset, totalRecords) {
+            const paginationDiv = document.getElementById('pagination');
+            const totalPages = Math.ceil(currentResults.length / itemsPerPage);
+            const currentPage = Math.floor(offset / itemsPerPage) + 1;
+
+            let paginationHtml = '';
+            if (totalPages > 1) {
+                paginationHtml += `<button ${offset === 0 ? 'disabled' : ''} onclick="displayPage(${offset - itemsPerPage}, ${totalRecords})">« Prev</button>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationHtml += `<button ${i === currentPage ? 'disabled' : ''} onclick="displayPage(${(i - 1) * itemsPerPage}, ${totalRecords})">${i}</button>`;
+                }
+                paginationHtml += `<button ${offset + itemsPerPage >= currentResults.length ? 'disabled' : ''} onclick="displayPage(${offset + itemsPerPage}, ${totalRecords})">Next »</button>`;
+            }
+            paginationDiv.innerHTML = paginationHtml;
+        }
+
+        function exportResults() {
+            if (!currentResults.length) {
+                alert('No results to export. Please search first.');
+                return;
+            }
+
+            const showBarcode = document.getElementById('showBarcode').checked;
+            const showCallNumber = document.getElementById('showCallNumber').checked;
+            const showLocation = document.getElementById('showLocation').checked;
+            const showMaterialType = document.getElementById('showMaterialType').checked;
+            const showHoldingsRecordId = document.getElementById('showHoldingsRecordId').checked;
+            const showShelvingOrder = document.getElementById('showShelvingOrder').checked;
+            const showStatus = document.getElementById('showStatus').checked;
+            const showLoanType = document.getElementById('showLoanType').checked;
+            const showStatisticalCodes = document.getElementById('showStatisticalCodes').checked;
+
+            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType && 
+                !showHoldingsRecordId && !showShelvingOrder && !showStatus && !showLoanType && !showStatisticalCodes) {
+                alert('No columns selected to export. Please select at least one column.');
+                return;
+            }
+
+            let csvHeader = [];
+            if (showBarcode) csvHeader.push('Barcode');
+            if (showCallNumber) csvHeader.push('Call Number');
+            if (showLocation) csvHeader.push('Effective Location');
+            if (showMaterialType) csvHeader.push('Material Type');
+            if (showHoldingsRecordId) csvHeader.push('Holdings Record ID');
+            if (showShelvingOrder) csvHeader.push('Effective Shelving Order');
+            if (showStatus) csvHeader.push('Status');
+            if (showLoanType) csvHeader.push('Permanent Loan Type');
+            if (showStatisticalCodes) csvHeader.push('Statistical Codes');
+            csvHeader.push('Scanned Barcodes', 'Missing', 'Misshelved');
+
+            const csvRows = currentResults.map(item => {
+                let row = [];
+                if (showBarcode) row.push(item.barcode);
+                if (showCallNumber) row.push(`"${item.callNumber.replace(/"/g, '""')}"`);
+                if (showLocation) row.push(item.effectiveLocation);
+                if (showMaterialType) row.push(item.materialType);
+                if (showHoldingsRecordId) row.push(item.holdingsRecordId);
+                if (showShelvingOrder) row.push(`"${item.effectiveShelvingOrder.replace(/"/g, '""')}"`);
+                if (showStatus) row.push(item.status);
+                if (showLoanType) row.push(item.permanentLoanType);
+                if (showStatisticalCodes) row.push(`"${item.statisticalCodeIds.replace(/"/g, '""')}"`);
+                return row.join(',');
+            });
+
+            const csv = [csvHeader.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ddc_search_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
