@@ -193,7 +193,6 @@
         <span class="tooltip">Tip: Use numeric format (e.g., 510.76). Note: 510.10 sorts before 510.2.</span>
         <label for="effectiveLocationId">Effective Locations (Ctrl/Cmd + Click for multiple):</label>
         <select id="effectiveLocationId" multiple>
-            <option value="">All Locations</option>
         </select>
         <div>
             <button onclick="searchItems(0)">Search</button>
@@ -264,7 +263,21 @@
                 }).then(res => res.json());
 
                 const effectiveSelect = document.getElementById('effectiveLocationId');
-                locationsData.locations.forEach(loc => {
+                // Clear existing options first
+                effectiveSelect.innerHTML = '';
+
+                // Add the default "All Locations" option
+                const defaultOption = document.createElement('option');
+                defaultOption.value = "";
+                defaultOption.text = "All Locations";
+                effectiveSelect.appendChild(defaultOption);
+
+                // Sort locations by name and add them
+                const sortedLocations = locationsData.locations.sort((a, b) => 
+                    a.name.localeCompare(b.name)
+                );
+
+                sortedLocations.forEach(loc => {
                     const option = document.createElement('option');
                     option.value = loc.id;
                     option.text = loc.name;
@@ -409,3 +422,4 @@
         }
     </script>
 </body>
+</html>
