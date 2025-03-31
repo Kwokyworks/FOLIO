@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Users Search and Export Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0; /* Remove default body margin */
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Maintain 1:2 ratio but stretch full width */
+            gap: 20px;
+            padding: 20px; /* Padding instead of margin for inner spacing */
+            width: 100%; /* Full width */
+            box-sizing: border-box; /* Include padding in width */
+        }
+        .form-container, .result-container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        select[multiple] {
+            height: 120px;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        select:not([multiple]), input[type="text"], input[type="password"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .error {
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .column-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .column-selector h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        .column-selector .controls {
+            margin-bottom: 10px;
+        }
+        .column-selector .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px 20px;
+        }
+        .column-selector .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .column-selector .checkbox-item input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .column-selector .checkbox-item label {
+            font-weight: normal;
+            margin: 0;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            max-width: 250px;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .pagination {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .export-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .summary {
+            margin: 10px 0;
+            padding: 10px;
+            background: #ecf0f1;
+            border-radius: 4px;
+        }
+        .range-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr; /* Stack on smaller screens */
+                padding: 10px; /* Reduce padding */
+            }
+            .column-selector .checkbox-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-container">
+            <h2>FOLIO Users Search and Export Application</h2>
+            <form id="authForm">
+                <label for="okapiUrl">Okapi Endpoint:</label>
+                <select id="okapiUrl" name="okapiUrl" required onchange="updateTenantOptions()">
+                    <option value="http://localhost:9130">Localhost (http://localhost:9130)</option>
+                    <option value="https://okapi-demo.folio.ebsco.com">Demo</option>
+                    <option value="https://okapi-demo1.folio.ebsco.com">Demo 1</option>
+                    <option value="https://okapi-demo2.folio.ebsco.com" selected>Demo 2</option>
+                    <option value="https://folio-snapshot-okapi.dev.folio.org">Snapshot (https://folio-snapshot-okapi.dev.folio.org)</option>
+                </select>
+
+                <label for="tenantId">Tenant ID:</label>
+                <select id="tenantId" name="tenantId" required></select>
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" value="admin" required>
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" value="admin" required>
+
+                <button type="submit">Authenticate</button>
+            </form>
+
+            <div id="searchFormContainer" style="display: none;">
+                <h2>Search Users</h2>
+                <form id="searchForm">
+                    <label for="patronGroups">Patron Groups:</label>
+                    <select id="patronGroups" name="patronGroups" multiple></select>
+
+                    <label>Patron Status:</label>
+                    <div>
+                        <input type="radio" id="active" name="status" value="true" checked>
+                        <label for="active">Active</label>
+                        <input type="radio" id="blocked" name="status" value="false">
+                        <label for="blocked">Blocked</label>
+                    </div>
+
+                    <label for="limit">Limit (max results):</label>
+                    <input type="number" id="limit" name="limit" value="50" min="1" required>
+
+                    <label>Display Range:</label>
+                    <div class="range-inputs">
+                        <input type="number" id="rangeStart" name="rangeStart" placeholder="Start (1-based)" min="1" value="1">
+                        <input type="number" id="rangeEnd" name="rangeEnd" placeholder="End (1-based)" min="1">
+                    </div>
+
+                    <div class="column-selector">
+                        <h3>Select Columns</h3>
+                        <div class="controls">
+                            <button type="button" onclick="selectAllColumns()">Select All</button>
+                            <button type="button" onclick="unselectAllColumns()">Unselect All</button>
+                        </div>
+                        <div class="checkbox-grid" id="columnCheckboxes"></div>
+                    </div>
+
+                    <button type="submit">Search</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="result-container">
+            <h2>Results</h2>
+            <div id="errorMessage" class="error"></div>
+            <div id="resultsSummary" class="summary" style="display: none;"></div>
+            <div class="export-buttons">
+                <button onclick="exportToCSV()">Export to CSV</button>
+                <button onclick="exportToJSON()">Export to JSON</button>
+            </div>
+            <table id="resultsTable" style="display: none;">
+                <thead id="resultsHeader"></thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+            <div class="pagination" id="paginationControls" style="display: none;">
+                <button onclick="prevPage()">Previous</button>
+                <span id="pageInfo"></span>
+                <button onclick="nextPage()">Next</button>
+                <label for="pageSize">Rows per page:</label>
+                <select id="pageSize" onchange="changePageSize()">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let okapiToken = null;
+        let okapiUrl = '';
+        let tenantId = '';
+        let allUsers = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        const allUserFields = [
+            'username', 'id', 'externalSystemId', 'barcode', 'active', 'type', 'patronGroup',
+            'proxyFor', 'personal.lastName', 'personal.email', 'personal.phone',
+            'personal.mobilePhone', 'personal.addresses', 'personal.preferredContactTypeId',
+            'enrollmentDate', 'expirationDate', 'createdDate', 'updatedDate',
+            'metadata.createdDate', 'metadata.createdByUserId', 'metadata.updatedDate',
+            'metadata.updatedByUserId', 'customFields.affiliatedCampus', 'customFields.sessionNumber',
+            'customFields.terminatingSession', 'customFields.mykadpassportNumber',
+            'customFields.designation', 'customFields.previousRegistrationNo', 'customFields.statusCode'
+        ];
+
+        const typeMap = {
+            'patron': 'Patron',
+            'staff': 'Staff',
+            'system': 'System'
+        };
+
+        const endpointTenantMap = {
+            'http://localhost:9130': ['diku'],
+            'https://okapi-demo.folio.ebsco.com': ['fs00000002'],
+            'https://okapi-demo1.folio.ebsco.co': ['idksoguess'],
+            'https://okapi-demo2.folio.ebsco.com': ['fs00001176'],
+            'https://folio-snapshot-okapi.dev.folio.org': ['diku']
+        };
+
+        // Update tenant options based on selected endpoint
+        function updateTenantOptions() {
+            const okapiUrl = document.getElementById('okapiUrl').value;
+            const tenantSelect = document.getElementById('tenantId');
+            tenantSelect.innerHTML = '';
+            const tenants = endpointTenantMap[okapiUrl] || [];
+            tenants.forEach(tenant => {
+                const option = document.createElement('option');
+                option.value = tenant;
+                option.textContent = tenant;
+                if (tenant === 'fs00001176' && okapiUrl === 'https://okapi-demo2.folio.ebsco.com') {
+                    option.selected = true;
+                }
+                tenantSelect.appendChild(option);
+            });
+        }
+
+        // Initial call to set tenant options
+        updateTenantOptions();
+
+        // Handle authentication form submission
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            okapiUrl = document.getElementById('okapiUrl').value;
+            tenantId = document.getElementById('tenantId').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${okapiUrl}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status !== 201) {
+                    throw new Error(`Authentication failed: ${await response.text()}`);
+                }
+
+                okapiToken = response.headers.get('X-Okapi-Token');
+                document.getElementById('searchFormContainer').style.display = 'block';
+                document.getElementById('errorMessage').textContent = 'Authentication successful!';
+                await populateDropdowns();
+                populateColumnCheckboxes();
+                setTimeout(() => document.getElementById('errorMessage').textContent = '', 2000);
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        });
+
+        // Populate and sort dropdowns with "All" option
+        async function populateDropdowns() {
+            const headers = {
+                'X-Okapi-Tenant': tenantId,
+                'X-Okapi-Token': okapiToken,
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                const groupResponse = await fetch(`${okapiUrl}/groups?limit=1000`, { headers });
+                if (!groupResponse.ok) throw new Error(`Groups fetch failed: ${groupResponse.statusText}`);
+                const groups = await groupResponse.json();
+                const patronGroupsSelect = document.getElementById('patronGroups');
+                const allGroupOption = document.createElement('option');
+                allGroupOption.value = 'all';
+                allGroupOption.textContent = 'All';
+                patronGroupsSelect.appendChild(allGroupOption);
+                const sortedGroups = groups.usergroups.sort((a, b) => a.group.localeCompare(b.group));
+                sortedGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.group;
+                    patronGroupsSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error in populateDropdowns:', error);
+                document.getElementById('errorMessage').textContent = `Failed to load dropdowns: ${error.message}`;
+            }
+        }
+
+        // Populate column selection checkboxes
+        function populateColumnCheckboxes() {
+            const container = document.getElementById('columnCheckboxes');
+            allUserFields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `col-${field}`;
+                checkbox.value = field;
+                checkbox.checked = ['username', 'personal.lastName', 'personal.email', 'patronGroup'].includes(field);
+                const label = document.createElement('label');
+                label.htmlFor = `col-${field}`;
+                label.textContent = field;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        }
+
+        // Select all columns
+        function selectAllColumns() {
+            document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
+        }
+
+        // Unselect all columns
+        function unselectAllColumns() {
+            document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+        }
+
+        // Handle search form submission
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!okapiToken) {
+                document.getElementById('errorMessage').textContent = 'Please authenticate first!';
+                return;
+            }
+
+            const patronGroups = Array.from(document.getElementById('patronGroups').selectedOptions).map(opt => opt.value);
+            const status = document.querySelector('input[name="status"]:checked').value;
+            const limit = document.getElementById('limit').value;
+            const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+            const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || limit;
+            const selectedColumns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+
+            const headers = {
+                'X-Okapi-Tenant': tenantId,
+                'X-Okapi-Token': okapiToken,
+                'Content-Type': 'application/json'
+            };
+
+            let queryParts = [`active==${status}`];
+            if (patronGroups.length > 0 && !patronGroups.includes('all')) {
+                queryParts.push(`patronGroup==(${patronGroups.map(id => `"${id}"`).join(' or ')})`);
+            }
+            const query = queryParts.join(' and ');
+
+            try {
+                const usersResponse = await fetch(`${okapiUrl}/users?query=${encodeURIComponent(query)}&limit=${limit}`, { headers });
+                if (!usersResponse.ok) throw new Error(`Users fetch failed: ${await usersResponse.text()}`);
+                allUsers = (await usersResponse.json()).users;
+                currentPage = 1;
+                displayResults(allUsers, selectedColumns, rangeStart, rangeEnd);
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById('errorMessage').textContent = error.message;
+            }
+        });
+
+        // Display results with pagination and range
+        async function displayResults(users, columns, rangeStart, rangeEnd) {
+            const thead = document.getElementById('resultsHeader');
+            const tbody = document.getElementById('resultsBody');
+            const summaryDiv = document.getElementById('resultsSummary');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            summaryDiv.innerHTML = '';
+
+            if (users.length === 0) {
+                document.getElementById('errorMessage').textContent = 'No users found.';
+                document.getElementById('resultsTable').style.display = 'none';
+                document.getElementById('paginationControls').style.display = 'none';
+                document.getElementById('resultsSummary').style.display = 'none';
+                return;
+            }
+
+            const groupResponse = await fetch(`${okapiUrl}/groups?limit=1000`, {
+                headers: {
+                    'X-Okapi-Tenant': tenantId,
+                    'X-Okapi-Token': okapiToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const groups = await groupResponse.json();
+            const groupMap = {};
+            groups.usergroups.forEach(group => groupMap[group.id] = group.group);
+
+            // Adjust range (1-based to 0-based indexing)
+            const startIdx = Math.max(0, rangeStart - 1);
+            const endIdx = Math.min(users.length, rangeEnd) - 1;
+            const displayUsers = users.slice(startIdx, endIdx + 1);
+
+            // Create summary
+            const groupCounts = {};
+            displayUsers.forEach(user => {
+                const groupName = groupMap[user.patronGroup] || user.patronGroup || 'Unknown';
+                groupCounts[groupName] = (groupCounts[groupName] || 0) + 1;
+            });
+            summaryDiv.innerHTML = `<strong>Total Users: ${users.length}</strong> (showing ${startIdx + 1}-${endIdx + 1})<br>` +
+                Object.entries(groupCounts).map(([group, count]) => `${group}: ${count}`).join('<br>');
+            summaryDiv.style.display = 'block';
+
+            // Create table header
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Paginate and display rows within range
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedUsers = displayUsers.slice(start, end);
+
+            paginatedUsers.forEach(user => {
+                const row = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    let value = getNestedValue(user, col);
+                    if (col === 'patronGroup') {
+                        value = groupMap[value] || value || '';
+                    } else if (col === 'type') {
+                        value = typeMap[value] || value || '';
+                    } else if (col === 'personal.addresses' && Array.isArray(value)) {
+                        value = value.map(addr => `${addr.addressLine1}, ${addr.city}, ${addr.region}, ${addr.postalCode}`).join('; ');
+                    } else if (Array.isArray(value)) {
+                        value = value.join(', ');
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
+                    td.textContent = value || '';
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('resultsTable').style.display = 'table';
+            document.getElementById('paginationControls').style.display = 'flex';
+            updatePagination(displayUsers.length);
+            document.getElementById('errorMessage').textContent = '';
+        }
+
+        // Pagination controls
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / pageSize);
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages} (${totalItems} items in range)`;
+            document.querySelector('#paginationControls button:first-child').disabled = currentPage === 1;
+            document.querySelector('#paginationControls button:nth-child(3)').disabled = currentPage === totalPages;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+                const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || allUsers.length;
+                displayResults(allUsers, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil((parseInt(document.getElementById('rangeEnd').value) || allUsers.length) - (parseInt(document.getElementById('rangeStart').value) || 1) + 1) / pageSize;
+            if (currentPage < totalPages) {
+                currentPage++;
+                const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+                const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || allUsers.length;
+                displayResults(allUsers, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+            }
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1;
+            const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+            const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || allUsers.length;
+            displayResults(allUsers, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+        }
+
+        // Export to CSV (range only)
+        function exportToCSV() {
+            const columns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+            const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+            const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || allUsers.length;
+            const exportUsers = allUsers.slice(rangeStart - 1, rangeEnd);
+
+            let csv = columns.join(',') + '\n';
+            exportUsers.forEach(user => {
+                const row = columns.map(col => {
+                    let value = getNestedValue(user, col);
+                    if (col === 'patronGroup') {
+                        value = document.getElementById('resultsBody').querySelector(`td`).textContent; // Simplified
+                    } else if (col === 'type') {
+                        value = typeMap[value] || value || '';
+                    } else if (col === 'personal.addresses' && Array.isArray(value)) {
+                        value = value.map(addr => `${addr.addressLine1}, ${addr.city}, ${addr.region}, ${addr.postalCode}`).join('; ');
+                    } else if (Array.isArray(value)) {
+                        value = value.join(', ');
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
+                    return `"${(value || '').toString().replace(/"/g, '""')}"`;
+                }).join(',');
+                csv += row + '\n';
+            });
+            downloadFile(csv, `users_range_${rangeStart}-${rangeEnd}.csv`, 'text/csv');
+        }
+
+        // Export to JSON (range only)
+        function exportToJSON() {
+            const columns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+            const rangeStart = parseInt(document.getElementById('rangeStart').value) || 1;
+            const rangeEnd = parseInt(document.getElementById('rangeEnd').value) || allUsers.length;
+            const exportUsers = allUsers.slice(rangeStart - 1, rangeEnd);
+
+            const filteredUsers = exportUsers.map(user => {
+                const filtered = {};
+                columns.forEach(col => {
+                    const keys = col.split('.');
+                    let target = filtered;
+                    for (let i = 0; i < keys.length - 1; i++) {
+                        target[keys[i]] = target[keys[i]] || {};
+                        target = target[keys[i]];
+                    }
+                    target[keys[keys.length - 1]] = getNestedValue(user, col);
+                });
+                return filtered;
+            });
+            const json = JSON.stringify(filteredUsers, null, 2);
+            downloadFile(json, `users_range_${rangeStart}-${rangeEnd}.json`, 'application/json');
+        }
+
+        // Helper function to download file
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Helper function to get nested object values
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+        }
+    </script>
+</body>
+</html>
