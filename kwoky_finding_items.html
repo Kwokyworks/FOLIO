@@ -10,7 +10,7 @@
             font-family: 'Segoe UI', Arial, sans-serif;
             width: 95%;
             margin: 0 auto;
-            padding: 2vw;
+            padding: 1.5vw;
             background: #f8f9fa;
             color: #333;
             box-sizing: border-box;
@@ -19,44 +19,71 @@
         h1 {
             color: #2c3e50;
             border-bottom: 2px solid #3498db;
-            padding-bottom: 1vw;
-            font-size: clamp(1.5rem, 3vw, 2rem);
+            padding-bottom: 0.5vw;
+            font-size: clamp(1.5rem, 2.5vw, 2rem);
+            margin-bottom: 1vw;
         }
 
         h2 {
             color: #34495e;
-            margin-top: 2vw;
-            font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+            margin: 1vw 0;
+            font-size: clamp(1.2rem, 2vw, 1.5rem);
         }
 
         .form-container,
         .auth-container {
             background: white;
-            padding: 2vw;
+            padding: 1.5vw;
             border-radius: 0.5vw;
             box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.1);
-            margin-bottom: 2vw;
-            width: 100%;
+            margin-bottom: 1.5vw;
             box-sizing: border-box;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1vw;
+            align-items: start;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
         }
 
         .sort-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 1vw;
             align-items: center;
-            margin-bottom: 1vw;
+            gap: 0.5vw;
+            margin: 0.5vw 0;
+            flex-wrap: wrap;
+        }
+
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 0.3vw;
+        }
+
+        .sort-group label {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .sort-group select {
+            width: 150px; /* Fixed width instead of 100% */
+            max-width: none; /* Remove previous max-width constraint */
         }
 
         .column-select {
-            margin-bottom: 1vw;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(200px, 30vw), 1fr));
-            gap: 1vw;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.5vw;
             padding: 1vw;
             border: 1px solid #ddd;
             border-radius: 0.4vw;
             background: #fafafa;
+            margin: 0.5vw 0;
         }
 
         .column-select label {
@@ -64,47 +91,64 @@
             align-items: center;
             gap: 0.5vw;
             margin: 0;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-size: clamp(0.8rem, 1.2vw, 1rem);
         }
 
         label {
             display: block;
-            margin: 1vw 0 0.5vw;
+            margin: 0.5vw 0 0.2vw;
             font-weight: 500;
             color: #2c3e50;
-            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+            font-size: clamp(0.9rem, 1.5vw, 1rem);
         }
 
         input[type="text"],
         input[type="password"],
         select {
             width: 100%;
-            max-width: 400px; /* Prevent full-screen expansion */
-            padding: 0.8vw;
-            margin-bottom: 1vw;
+            padding: 0.6vw;
+            margin-bottom: 0.5vw;
             border: 1px solid #ddd;
             border-radius: 0.4vw;
             box-sizing: border-box;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-size: clamp(0.8rem, 1.2vw, 1rem);
         }
 
-        select[multiple] {
-            height: 12vw;
-            max-width: 400px; /* Consistent with other inputs */
+        .multi-select-container {
+            position: relative;
+            margin-bottom: 0.5vw;
+        }
+
+        .multi-select-container select[multiple] {
+            width: 100%;
+            height: 150px;
+            padding: 0.5vw;
             background: #fff;
-            min-height: 100px;
+        }
+
+        .multi-select-controls {
+            display: flex;
+            gap: 0.5vw;
+            margin-top: 0.3vw;
+        }
+
+        .multi-select-search {
+            width: 100%;
+            padding: 0.4vw;
+            margin-bottom: 0.3vw;
+            border: 1px solid #ddd;
+            border-radius: 0.4vw;
         }
 
         button {
             background: #3498db;
             color: white;
-            padding: 0.8vw 1.6vw;
+            padding: 0.6vw 1.2vw;
             border: none;
             border-radius: 0.4vw;
             cursor: pointer;
-            margin: 0.5vw;
             transition: background 0.3s;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-size: clamp(0.8rem, 1.2vw, 1rem);
         }
 
         button:hover {
@@ -118,7 +162,6 @@
 
         #toggleAllBtn {
             background: #2ecc71;
-            margin-left: 0;
         }
 
         #toggleAllBtn:hover {
@@ -133,46 +176,48 @@
             background: #c0392b;
         }
 
+        .small-btn {
+            padding: 0.4vw 0.8vw;
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+        }
+
         .tooltip {
-            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
             color: #7f8c8d;
-            display: block;
-            margin-bottom: 1vw;
+            margin-bottom: 0.5vw;
         }
 
         .error {
             color: #e74c3c;
-            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
         }
 
         .loading {
             color: #7f8c8d;
             font-style: italic;
-            font-size: clamp(0.7rem, 1.2vw, 0.9rem);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
         }
 
         #results {
             background: white;
-            padding: 1.5vw;
+            padding: 1vw;
             border-radius: 0.5vw;
             box-shadow: 0 0.2vw 0.5vw rgba(0, 0, 0, 0.1);
-            margin-top: 2vw;
-            width: 100%;
+            margin-top: 1vw;
             box-sizing: border-box;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 1.5vw;
+            margin-top: 1vw;
         }
 
-        th,
-        td {
-            padding: 1vw;
+        th, td {
+            padding: 0.8vw;
             text-align: left;
             border-bottom: 1px solid #eee;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            font-size: clamp(0.8rem, 1.2vw, 1rem);
         }
 
         th {
@@ -190,8 +235,7 @@
         }
 
         .pagination {
-            margin: 1.5vw 0;
-            text-align: center;
+            margin: 1vw 0;
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
@@ -199,46 +243,37 @@
         }
 
         .pagination button {
-            margin: 0 0.3vw;
-            padding: 0.6vw 1.2vw;
-            min-width: 3vw;
-            font-size: clamp(0.8rem, 1.5vw, 1rem);
+            padding: 0.5vw 1vw;
+            min-width: 2.5vw;
         }
 
         p {
-            margin: 0 0 1.5vw;
+            margin: 0 0 1vw;
             color: #2c3e50;
-            font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+            font-size: clamp(0.9rem, 1.5vw, 1rem);
         }
 
         @media (max-width: 600px) {
-            body {
-                padding: 4vw;
-            }
-
-            .form-container,
-            .auth-container {
-                padding: 3vw;
-            }
-
-            .column-select {
+            .form-grid {
                 grid-template-columns: 1fr;
-            }
-
-            button {
-                width: 100%;
-                margin: 0.5vw 0;
             }
 
             .sort-container {
                 flex-direction: column;
-                align-items: stretch;
+                align-items: flex-start;
             }
 
-            input[type="text"],
-            input[type="password"],
-            select {
-                max-width: 100%; /* Full width on mobile, but not exceeding container */
+            .sort-group {
+                width: 100%;
+            }
+
+            .sort-group select {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+                margin: 0.3vw 0;
             }
         }
     </style>
@@ -248,20 +283,30 @@
     <h1>FOLIO Inventory Export Application</h1>
     <div class="auth-container">
         <h2>Authentication</h2>
-        <label for="baseUrl">FOLIO Instance:</label>
-        <select id="baseUrl" onchange="updateTenantId()">
-            <option value="https://okapi-demo.folio.ebsco.com" data-tenant="fs00000002">Demo</option>
-            <option value="https://okapi-demo1.folio.ebsco.com" data-tenant="idksoguess">Demo 1</option>
-            <option value="https://okapi-demo2.folio.ebsco.com" data-tenant="fs00001176">Demo 2</option>
-            <option value="https://folio-org.okapi.us" data-tenant="folio_org">FOLIO Org</option>
-            <option value="https://folio-snapshot.okapi.us" data-tenant="folio_snapshot">FOLIO Snapshot</option>
-        </select>
-        <label for="tenantId">Tenant ID:</label>
-        <input type="text" id="tenantId" placeholder="e.g., fs00001234" required>
-        <label for="username">Username:</label>
-        <input type="text" id="username" placeholder="e.g., admin" required>
-        <label for="password">Password:</label>
-        <input type="password" id="password" placeholder="Enter password" required>
+        <div class="form-grid">
+            <div>
+                <label for="baseUrl">FOLIO Instance:</label>
+                <select id="baseUrl" onchange="updateTenantId()">
+                    <option value="https://okapi-demo.folio.ebsco.com" data-tenant="fs00000002">Demo</option>
+                    <option value="https://okapi-demo1.folio.ebsco.com" data-tenant="idksoguess">Demo 1</option>
+                    <option value="https://okapi-demo2.folio.ebsco.com" data-tenant="fs00001176">Demo 2</option>
+                    <option value="https://folio-org.okapi.us" data-tenant="folio_org">FOLIO Org</option>
+                    <option value="https://folio-snapshot.okapi.us" data-tenant="folio_snapshot">FOLIO Snapshot</option>
+                </select>
+            </div>
+            <div>
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001234" required>
+            </div>
+            <div>
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="e.g., admin" required>
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+        </div>
         <div>
             <button onclick="login()">Login</button>
             <button id="logoutBtn" onclick="logout()" style="display: none;">Logout</button>
@@ -271,33 +316,68 @@
 
     <div id="searchSection" class="form-container" style="display: none;">
         <h2>Search Parameters</h2>
-        <label for="startRange">Start DDC Call Number (Optional):</label>
-        <input type="text" id="startRange" placeholder="e.g., 510.76">
-        <label for="endRange">End DDC Call Number (Optional):</label>
-        <input type="text" id="endRange" placeholder="e.g., 510.8">
-        <span class="tooltip">Tip: Use numeric format (e.g., 510.76). Note: 510.10 sorts before 510.2. Leave blank to
-            search all call numbers.</span>
-        <label for="effectiveLocationId">Effective Locations (Ctrl/Cmd + Click for multiple):</label>
-        <select id="effectiveLocationId" multiple>
-            <option value="">All Locations</option>
-        </select>
-        <label for="materialTypeId">Material Types (Ctrl/Cmd + Click for multiple):</label>
-        <select id="materialTypeId" multiple>
-            <option value="">All Material Types</option>
-        </select>
+        <div class="form-grid">
+            <div class="full-width">
+                <label for="startRange">Start DDC Call Number:</label>
+                <input type="text" id="startRange" placeholder="e.g., 510.76">
+                <span class="tooltip">Optional - Numeric format (e.g., 510.76)</span>
+            </div>
+            <div class="full-width">
+                <label for="endRange">End DDC Call Number:</label>
+                <input type="text" id="endRange" placeholder="e.g., 510.8">
+                <span class="tooltip">Optional - Leave blank for all call numbers</span>
+            </div>
+            <div class="multi-select-container">
+                <label for="effectiveLocationId">Effective Locations:</label>
+                <input type="text" class="multi-select-search" id="locationSearch" placeholder="Search locations...">
+                <select id="effectiveLocationId" multiple>
+                    <option value="">All Locations</option>
+                </select>
+                <div class="multi-select-controls">
+                    <button class="small-btn" onclick="selectAll('effectiveLocationId')">Select All</button>
+                    <button class="small-btn" onclick="clearSelection('effectiveLocationId')">Clear</button>
+                </div>
+            </div>
+            <div class="multi-select-container">
+                <label for="materialTypeId">Material Types:</label>
+                <input type="text" class="multi-select-search" id="materialSearch" placeholder="Search material types...">
+                <select id="materialTypeId" multiple>
+                    <option value="">All Material Types</option>
+                </select>
+                <div class="multi-select-controls">
+                    <button class="small-btn" onclick="selectAll('materialTypeId')">Select All</button>
+                    <button class="small-btn" onclick="clearSelection('materialTypeId')">Clear</button>
+                </div>
+            </div>
+            <div class="multi-select-container">
+                <label for="statisticalCodeId">Statistical Codes:</label>
+                <input type="text" class="multi-select-search" id="statisticalSearch" placeholder="Search statistical codes...">
+                <select id="statisticalCodeId" multiple>
+                    <option value="">All Statistical Codes</option>
+                </select>
+                <div class="multi-select-controls">
+                    <button class="small-btn" onclick="selectAll('statisticalCodeId')">Select All</button>
+                    <button class="small-btn" onclick="clearSelection('statisticalCodeId')">Clear</button>
+                </div>
+            </div>
+        </div>
         <div class="sort-container">
-            <label for="sortBy">Sort By:</label>
-            <select id="sortBy">
-                <option value="callNumber">Call Number</option>
-                <option value="barcode">Barcode</option>
-                <option value="effectiveLocation">Effective Location</option>
-                <option value="materialType">Material Type</option>
-            </select>
-            <label for="sortOrder">Order:</label>
-            <select id="sortOrder">
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-            </select>
+            <div class="sort-group">
+                <label for="sortBy">Sort By:</label>
+                <select id="sortBy">
+                    <option value="callNumber">Call Number</option>
+                    <option value="barcode">Barcode</option>
+                    <option value="effectiveLocation">Effective Location</option>
+                    <option value="materialType">Material Type</option>
+                </select>
+            </div>
+            <div class="sort-group">
+                <label for="sortOrder">Order:</label>
+                <select id="sortOrder">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+            </div>
         </div>
         <div>
             <button onclick="searchItems(0)">Search</button>
@@ -327,6 +407,7 @@
         let locationMap = {};
         let materialTypeMap = {};
         let loanTypeMap = {};
+        let statisticalCodeMap = {};
         let currentResults = [];
         let baseUrl = '';
         let tenantId = '';
@@ -341,7 +422,43 @@
 
         window.onload = function () {
             updateTenantId();
+            setupMultiSelectSearch();
         };
+
+        function setupMultiSelectSearch() {
+            const searches = {
+                'locationSearch': 'effectiveLocationId',
+                'materialSearch': 'materialTypeId',
+                'statisticalSearch': 'statisticalCodeId'
+            };
+
+            Object.entries(searches).forEach(([searchId, selectId]) => {
+                const searchInput = document.getElementById(searchId);
+                const select = document.getElementById(selectId);
+
+                searchInput.addEventListener('input', function() {
+                    const filter = this.value.toLowerCase();
+                    Array.from(select.options).forEach(option => {
+                        const text = option.text.toLowerCase();
+                        option.style.display = text.includes(filter) ? '' : 'none';
+                    });
+                });
+            });
+        }
+
+        function selectAll(selectId) {
+            const select = document.getElementById(selectId);
+            Array.from(select.options).forEach(option => {
+                if (option.style.display !== 'none') {
+                    option.selected = true;
+                }
+            });
+        }
+
+        function clearSelection(selectId) {
+            const select = document.getElementById(selectId);
+            Array.from(select.options).forEach(option => option.selected = false);
+        }
 
         async function login() {
             baseUrl = document.getElementById('baseUrl').value;
@@ -455,6 +572,39 @@
                     loanTypeMap[lt.id] = lt.name;
                 });
 
+                console.log('Fetching statistical codes:', `${baseUrl}/statistical-codes?limit=5000`);
+                const statisticalCodesResponse = await fetch(`${baseUrl}/statistical-codes?limit=5000`, {
+                    headers: {
+                        'X-Okapi-Tenant': tenantId,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (!statisticalCodesResponse.ok) {
+                    const text = await statisticalCodesResponse.text();
+                    console.error('Statistical codes fetch failed:', statisticalCodesResponse.status, text);
+                    throw new Error(`Statistical codes fetch failed: ${statisticalCodesResponse.status} - ${text}`);
+                }
+                const statisticalCodesData = await statisticalCodesResponse.json();
+                const statisticalCodeSelect = document.getElementById('statisticalCodeId');
+
+                const sortedStatisticalCodes = statisticalCodesData.statisticalCodes.sort((a, b) => {
+                    const nameA = a.name.trim();
+                    const nameB = b.name.trim();
+                    return nameA.localeCompare(nameB);
+                });
+
+                while (statisticalCodeSelect.options.length > 1) {
+                    statisticalCodeSelect.remove(1);
+                }
+
+                sortedStatisticalCodes.forEach(sc => {
+                    const option = document.createElement('option');
+                    option.value = sc.id;
+                    option.text = sc.name.trim();
+                    statisticalCodeSelect.appendChild(option);
+                    statisticalCodeMap[sc.id] = sc.name.trim();
+                });
+
                 authStatus.innerHTML = 'Login successful!';
                 document.getElementById('searchSection').style.display = 'block';
                 document.querySelector('.auth-container').style.display = 'none';
@@ -472,6 +622,7 @@
             locationMap = {};
             materialTypeMap = {};
             loanTypeMap = {};
+            statisticalCodeMap = {};
             document.getElementById('searchSection').style.display = 'none';
             document.querySelector('.auth-container').style.display = 'block';
             document.getElementById('logoutBtn').style.display = 'none';
@@ -484,16 +635,14 @@
         function resetForm() {
             document.getElementById('startRange').value = '';
             document.getElementById('endRange').value = '';
-            const effectiveSelect = document.getElementById('effectiveLocationId');
-            const materialTypeSelect = document.getElementById('materialTypeId');
-            for (let option of effectiveSelect.options) {
-                option.selected = false;
-            }
-            for (let option of materialTypeSelect.options) {
-                option.selected = false;
-            }
+            const selects = ['effectiveLocationId', 'materialTypeId', 'statisticalCodeId'];
+            selects.forEach(id => clearSelection(id));
             document.getElementById('sortBy').value = 'callNumber';
             document.getElementById('sortOrder').value = 'asc';
+            document.getElementById('locationSearch').value = '';
+            document.getElementById('materialSearch').value = '';
+            document.getElementById('statisticalSearch').value = '';
+            setupMultiSelectSearch(); // Reset visibility
         }
 
         function toggleAllCheckboxes() {
@@ -503,12 +652,13 @@
             displayPage(0, currentResults.length);
             document.getElementById('toggleAllBtn').textContent = allChecked ? 'Select All' : 'Unselect All';
         }
-
+        
         async function searchItems(offset = 0) {
             const startRange = document.getElementById('startRange').value.trim();
             const endRange = document.getElementById('endRange').value.trim();
             const effectiveSelect = document.getElementById('effectiveLocationId');
             const materialTypeSelect = document.getElementById('materialTypeId');
+            const statisticalCodeSelect = document.getElementById('statisticalCodeId');
             const sortBy = document.getElementById('sortBy').value;
             const sortOrder = document.getElementById('sortOrder').value;
             const selectedLocations = Array.from(effectiveSelect.selectedOptions)
@@ -517,15 +667,19 @@
             const selectedMaterialTypes = Array.from(materialTypeSelect.selectedOptions)
                 .filter(option => option.value !== "")
                 .map(option => option.value);
+            const selectedStatisticalCodes = Array.from(statisticalCodeSelect.selectedOptions)
+                .filter(option => option.value !== "")
+                .map(option => option.value);
             const resultsDiv = document.getElementById('results');
 
             const ddcPattern = /^\d{1,3}(\.\d+)?(\s+[A-Z]{1,3}\d+)?$/;
             const hasCallNumber = startRange || endRange;
             const hasLocation = selectedLocations.length > 0;
             const hasMaterialType = selectedMaterialTypes.length > 0;
+            const hasStatisticalCode = selectedStatisticalCodes.length > 0;
 
-            if (!hasCallNumber && !hasLocation && !hasMaterialType) {
-                resultsDiv.innerHTML = '<span class="error">Please provide at least one filter: call number range, location, or material type.</span>';
+            if (!hasCallNumber && !hasLocation && !hasMaterialType && !hasStatisticalCode) {
+                resultsDiv.innerHTML = '<span class="error">Please provide at least one filter: call number range, location, material type, or statistical code.</span>';
                 return;
             }
 
@@ -559,6 +713,10 @@
             if (hasMaterialType) {
                 cqlQueryParts.push(`(${selectedMaterialTypes.map(mt => `materialTypeId=="${mt}"`).join(" OR ")})`);
             }
+            if (hasStatisticalCode) {
+                // Use single = for array contains search
+                cqlQueryParts.push(`(${selectedStatisticalCodes.map(sc => `statisticalCodeIds="${sc}"`).join(" OR ")})`);
+            }
             const cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "barcode=*";
             const itemsUrl = `${baseUrl}/item-storage/items?query=${encodeURIComponent(cqlQuery)}&limit=5000&offset=0`;
 
@@ -589,7 +747,7 @@
                         effectiveShelvingOrder: item.effectiveShelvingOrder || 'N/A',
                         status: item.status?.name || 'Unknown',
                         permanentLoanType: loanTypeMap[item.permanentLoanTypeId] || item.permanentLoanTypeId || 'Unknown',
-                        statisticalCodeIds: item.statisticalCodeIds?.join(', ') || 'None'
+                        statisticalCodeIds: item.statisticalCodeIds?.map(id => statisticalCodeMap[id] || id).join(', ') || 'None'
                     }))
                     .sort((a, b) => {
                         const order = sortOrder === 'asc' ? 1 : -1;
@@ -630,7 +788,7 @@
             const showLoanType = document.getElementById('showLoanType').checked;
             const showStatisticalCodes = document.getElementById('showStatisticalCodes').checked;
 
-            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType && 
+            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType &&
                 !showHoldingsRecordId && !showShelvingOrder && !showStatus && !showLoanType && !showStatisticalCodes) {
                 resultsDiv.innerHTML = '<span class="error">Please select at least one column to display.</span>';
                 updatePagination(offset, totalRecords);
@@ -704,7 +862,7 @@
             const showLoanType = document.getElementById('showLoanType').checked;
             const showStatisticalCodes = document.getElementById('showStatisticalCodes').checked;
 
-            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType && 
+            if (!showBarcode && !showCallNumber && !showLocation && !showMaterialType &&
                 !showHoldingsRecordId && !showShelvingOrder && !showStatus && !showLoanType && !showStatisticalCodes) {
                 alert('No columns selected to export. Please select at least one column.');
                 return;
