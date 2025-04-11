@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Barcode Check-Out/Check-In</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #34495e;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #fff;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            transition: opacity 0.3s;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: #ddd;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tab-button.active {
+            background: #3498db;
+            color: white;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h3 { font-size: 1.3rem; }
+            .button-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Form -->
+        <div id="authForm">
+            <h3>FOLIO Login</h3>
+            <div class="form-group">
+                <label>Library System</label>
+                <select id="endpointSelect">
+                    <option value="https://okapi-demo2.folio.ebsco.com|fs00001176">Demo 2 Library</option>
+                    <option value="https://okapi-tarumt.folio.ebsco.com|fs00001234">TARUMT Library</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter password">
+            </div>
+            <button id="authButton">Sign In</button>
+            <div id="authLoading" class="loading">Signing in...</div>
+            <div id="authResult" class="status"></div>
+        </div>
+
+        <!-- Main Operations Container -->
+        <div id="operationsContainer" style="display: none;">
+            <div class="tab-buttons">
+                <button class="tab-button active" id="checkOutTab">Check-Out</button>
+                <button class="tab-button" id="checkInTab">Check-In</button>
+            </div>
+
+            <!-- Check-Out Form -->
+            <div id="checkOutForm">
+                <h3>Item Check-Out</h3>
+                <div class="button-group">
+                    <button id="scanUserButton">Scan User</button>
+                    <button id="scanItemButton">Scan Item</button>
+                    <button id="checkOutSubmit">Submit Check-Out</button>
+                    <button id="resetCheckOutButton" class="secondary">Reset</button>
+                    <button id="cancelButton" class="secondary" style="display: none;">Cancel Scan</button>
+                </div>
+                <div class="form-group">
+                    <label>User Barcode</label>
+                    <input type="text" id="userBarcodeInput" placeholder="Enter or scan user barcode">
+                </div>
+                <div class="form-group">
+                    <label>Item Barcode</label>
+                    <input type="text" id="itemBarcodeInput" placeholder="Enter or scan item barcode">
+                </div>
+                <div class="form-group">
+                    <label>Service Point</label>
+                    <select id="servicePointSelect">
+                        <option value="">Select service point</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Check-In Form -->
+            <div id="checkInForm" style="display: none;">
+                <h3>Item Check-In</h3>
+                <div class="button-group">
+                    <button id="scanCheckInButton">Scan Item</button>
+                    <button id="checkInSubmit">Submit Check-In</button>
+                    <button id="resetCheckInButton" class="secondary">Reset</button>
+                    <button id="cancelCheckInButton" class="secondary" style="display: none;">Cancel Scan</button>
+                </div>
+                <div class="form-group">
+                    <label>Item Barcode</label>
+                    <input type="text" id="checkInItemBarcodeInput" placeholder="Enter or scan item barcode">
+                </div>
+                <div class="form-group">
+                    <label>Service Point</label>
+                    <select id="checkInServicePointSelect">
+                        <option value="">Select service point</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="reader"></div>
+            <div id="operationLoading" class="loading">Processing...</div>
+            <div id="result" class="status"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authResult: document.getElementById("authResult"),
+            authForm: document.getElementById("authForm"),
+            operationsContainer: document.getElementById("operationsContainer"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            authLoading: document.getElementById("authLoading"),
+            operationLoading: document.getElementById("operationLoading"),
+            reader: document.getElementById("reader"),
+            result: document.getElementById("result"),
+            // Check-Out Elements
+            checkOutTab: document.getElementById("checkOutTab"),
+            checkInTab: document.getElementById("checkInTab"),
+            checkOutForm: document.getElementById("checkOutForm"),
+            checkInForm: document.getElementById("checkInForm"),
+            scanUserButton: document.getElementById("scanUserButton"),
+            scanItemButton: document.getElementById("scanItemButton"),
+            cancelButton: document.getElementById("cancelButton"),
+            resetCheckOutButton: document.getElementById("resetCheckOutButton"),
+            userBarcodeInput: document.getElementById("userBarcodeInput"),
+            itemBarcodeInput: document.getElementById("itemBarcodeInput"),
+            servicePointSelect: document.getElementById("servicePointSelect"),
+            checkOutSubmit: document.getElementById("checkOutSubmit"),
+            // Check-In Elements
+            scanCheckInButton: document.getElementById("scanCheckInButton"),
+            cancelCheckInButton: document.getElementById("cancelCheckInButton"),
+            resetCheckInButton: document.getElementById("resetCheckInButton"),
+            checkInItemBarcodeInput: document.getElementById("checkInItemBarcodeInput"),
+            checkInServicePointSelect: document.getElementById("checkInServicePointSelect"),
+            checkInSubmit: document.getElementById("checkInSubmit")
+        };
+
+        let isScanning = false;
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let lastSuccessfulCheckoutItem = null;
+        let lastScanTime = 0;
+        const SCAN_DEBOUNCE_MS = 1000;
+
+        setInterval(checkTokenExpiration, 60000);
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.scanUserButton.addEventListener("click", () => startScanning(true));
+        elements.scanItemButton.addEventListener("click", () => startScanning(false));
+        elements.scanCheckInButton.addEventListener("click", () => startScanning(false, true));
+        elements.cancelButton.addEventListener("click", stopScanning);
+        elements.cancelCheckInButton.addEventListener("click", stopScanning);
+        elements.resetCheckOutButton.addEventListener("click", resetCheckOut);
+        elements.resetCheckInButton.addEventListener("click", resetCheckIn);
+        elements.checkOutSubmit.addEventListener("click", performCheckOut);
+        elements.checkInSubmit.addEventListener("click", performCheckIn);
+        elements.checkOutTab.addEventListener("click", () => switchTab(true));
+        elements.checkInTab.addEventListener("click", () => switchTab(false));
+
+        // Authentication
+        async function handleAuth() {
+            const username = elements.username.value.trim();
+            const password = elements.password.value.trim();
+            [selectedEndpoint, tenantId] = elements.endpointSelect.value.split("|");
+
+            if (!username || !password) {
+                showResult(elements.authResult, "Please enter both username and password.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.style.display = "block";
+            try {
+                const response = await fetch(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    showResult(elements.authResult, "Successfully signed in!", "success");
+                    elements.authForm.style.display = "none";
+                    elements.operationsContainer.style.display = "block";
+                    await loadServicePoints();
+                } else {
+                    const error = await response.json();
+                    showResult(elements.authResult, `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`, "error");
+                }
+            } catch (err) {
+                showResult(elements.authResult, `Connection error: ${err.message}`, "error");
+            } finally {
+                elements.authLoading.style.display = "none";
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        async function loadServicePoints() {
+            if (!isTokenValid()) return;
+            elements.operationLoading.style.display = "block";
+            try {
+                const response = await fetch(`${selectedEndpoint}/service-points?limit=100`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const options = '<option value="">Select service point</option>' + 
+                        data.servicepoints.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+                    elements.servicePointSelect.innerHTML = options;
+                    elements.checkInServicePointSelect.innerHTML = options;
+                }
+            } catch (err) {
+                showResult(elements.result, `Error loading service points: ${err.message}`, "error");
+            } finally {
+                elements.operationLoading.style.display = "none";
+            }
+        }
+
+        function startScanning(isUserBarcode = false, isCheckIn = false) {
+            if (!isTokenValid() || isScanning) return;
+            
+            const targetButton = isCheckIn ? elements.scanCheckInButton : 
+                              isUserBarcode ? elements.scanUserButton : elements.scanItemButton;
+            const cancelButton = isCheckIn ? elements.cancelCheckInButton : elements.cancelButton;
+            const formType = isCheckIn ? 'checkIn' : 'checkOut';
+
+            elements.reader.style.display = "block";
+            cancelButton.style.display = "block";
+            targetButton.textContent = "Scanning...";
+            toggleButtonState(true, formType, true);
+            showResult(elements.result, 
+                isCheckIn ? "Scanning item barcode..." : 
+                `Scanning ${isUserBarcode ? "user" : "item"} barcode...`, 
+                "info"
+            );
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                async (decodedText) => {
+                    const now = Date.now();
+                    if (now - lastScanTime < SCAN_DEBOUNCE_MS) return;
+
+                    lastScanTime = now;
+                    stopScanning(formType);
+                    if (isCheckIn) {
+                        elements.checkInItemBarcodeInput.value = decodedText;
+                        showResult(elements.result, `Item barcode scanned: ${decodedText}`, "success");
+                    } else if (isUserBarcode) {
+                        elements.userBarcodeInput.value = decodedText;
+                        showResult(elements.result, `User barcode scanned: ${decodedText}`, "success");
+                    } else {
+                        elements.itemBarcodeInput.value = decodedText;
+                        showResult(elements.result, `Item barcode scanned: ${decodedText}`, "success");
+                    }
+                }
+            ).catch(err => {
+                showResult(elements.result, `Scanner error: ${err}`, "error");
+                stopScanning(formType);
+            });
+
+            isScanning = true;
+        }
+
+        async function performCheckOut() {
+            const userBarcode = elements.userBarcodeInput.value.trim();
+            const itemBarcode = elements.itemBarcodeInput.value.trim();
+            const servicePointId = elements.servicePointSelect.value;
+
+            if (!isTokenValid() || !userBarcode || !itemBarcode || !servicePointId) {
+                showResult(elements.result, "Please complete all fields before submitting.", "error");
+                return;
+            }
+
+            if (lastSuccessfulCheckoutItem === itemBarcode) {
+                showResult(elements.result, "This item was already successfully checked out in this session. Reset to try a different item.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'checkOut');
+            elements.operationLoading.style.display = "block";
+            try {
+                const response = await fetch(`${selectedEndpoint}/circulation/check-out-by-barcode`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify({ itemBarcode, userBarcode, servicePointId })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    lastSuccessfulCheckoutItem = itemBarcode;
+                    showResult(elements.result, 
+                        `Check-out successful!\nLoan ID: ${data.id}\nItem: ${data.item?.title || itemBarcode}\nDue: ${new Date(data.dueDate).toLocaleString()}`,
+                        "success"
+                    );
+                } else {
+                    showResult(elements.result, 
+                        `Check-out failed: ${data.errors?.[0]?.message || 'Unknown error'}\nYou can edit and retry.`,
+                        "error"
+                    );
+                }
+            } catch (err) {
+                showResult(elements.result, `Check-out error: ${err.message}\nYou can edit and retry.`, "error");
+            } finally {
+                elements.operationLoading.style.display = "none";
+                toggleButtonState(false, 'checkOut');
+            }
+        }
+
+        async function performCheckIn() {
+            const itemBarcode = elements.checkInItemBarcodeInput.value.trim();
+            const servicePointId = elements.checkInServicePointSelect.value;
+
+            if (!isTokenValid() || !itemBarcode || !servicePointId) {
+                showResult(elements.result, "Please complete all fields before submitting.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'checkIn');
+            elements.operationLoading.style.display = "block";
+            try {
+                const response = await fetch(`${selectedEndpoint}/circulation/check-in-by-barcode`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify({
+                        itemBarcode,
+                        servicePointId,
+                        checkInDate: new Date().toISOString()
+                    })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showResult(elements.result, 
+                        `Check-in successful!\nItem: ${data.item?.title || itemBarcode}\nStatus: ${data.loanAction}`,
+                        "success"
+                    );
+                } else {
+                    showResult(elements.result, 
+                        `Check-in failed: ${data.errors?.[0]?.message || 'Unknown error'}\nYou can edit and retry.`,
+                        "error"
+                    );
+                }
+            } catch (err) {
+                showResult(elements.result, `Check-in error: ${err.message}\nYou can edit and retry.`, "error");
+            } finally {
+                elements.operationLoading.style.display = "none";
+                toggleButtonState(false, 'checkIn');
+            }
+        }
+
+        function stopScanning(formType = null) {
+            html5QrCode.stop().then(() => {
+                elements.reader.style.display = "none";
+                elements.cancelButton.style.display = "none";
+                elements.cancelCheckInButton.style.display = "none";
+                elements.scanUserButton.textContent = "Scan User";
+                elements.scanItemButton.textContent = "Scan Item";
+                elements.scanCheckInButton.textContent = "Scan Item";
+                if (formType) {
+                    toggleButtonState(false, formType, true);
+                }
+                isScanning = false;
+            }).catch(err => {
+                showResult(elements.result, `Stop error: ${err}`, "error");
+                if (formType) {
+                    toggleButtonState(false, formType, true);
+                }
+                isScanning = false;
+            });
+        }
+
+        function resetCheckOut() {
+            lastSuccessfulCheckoutItem = null;
+            elements.userBarcodeInput.value = "";
+            elements.itemBarcodeInput.value = "";
+            elements.servicePointSelect.selectedIndex = 0;
+            elements.scanUserButton.textContent = "Scan User";
+            elements.scanItemButton.textContent = "Scan Item";
+            if (isScanning) stopScanning('checkOut');
+            showResult(elements.result, "Form reset. Ready for new check-out.", "info");
+        }
+
+        function resetCheckIn() {
+            elements.checkInItemBarcodeInput.value = "";
+            elements.checkInServicePointSelect.selectedIndex = 0;
+            elements.scanCheckInButton.textContent = "Scan Item";
+            if (isScanning) stopScanning('checkIn');
+            showResult(elements.result, "Form reset. Ready for new check-in.", "info");
+        }
+
+        function switchTab(isCheckOut) {
+            elements.checkOutTab.classList.toggle("active", isCheckOut);
+            elements.checkInTab.classList.toggle("active", !isCheckOut);
+            elements.checkOutForm.style.display = isCheckOut ? "block" : "none";
+            elements.checkInForm.style.display = isCheckOut ? "none" : "block";
+            stopScanning(isCheckOut ? 'checkOut' : 'checkIn');
+            showResult(elements.result, "", "");
+        }
+
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                resetSession("Session expired. Please sign in again.");
+                return false;
+            }
+            return true;
+        }
+
+        function resetSession(message) {
+            okapiToken = null;
+            tokenExpiration = null;
+            lastSuccessfulCheckoutItem = null;
+            showResult(elements.authResult, message, "error");
+            elements.authForm.style.display = "block";
+            elements.operationsContainer.style.display = "none";
+            resetCheckOut();
+            resetCheckIn();
+        }
+
+        function showResult(element, message, type) {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.opacity = "1";
+            if (message && type !== "info") {
+                setTimeout(() => {
+                    element.style.opacity = "0";
+                    setTimeout(() => {
+                        element.textContent = "";
+                        element.style.opacity = "1";
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        function toggleButtonState(disable, formType, scanOnly = false) {
+            let buttons;
+            if (formType === 'auth') {
+                buttons = [elements.authButton];
+            } else if (formType === 'checkOut') {
+                buttons = scanOnly ? 
+                    [elements.scanUserButton, elements.scanItemButton] : 
+                    [elements.scanUserButton, elements.scanItemButton, elements.checkOutSubmit, elements.resetCheckOutButton];
+            } else if (formType === 'checkIn') {
+                buttons = scanOnly ? 
+                    [elements.scanCheckInButton] : 
+                    [elements.scanCheckInButton, elements.checkInSubmit, elements.resetCheckInButton];
+            }
+            
+            buttons.forEach(button => {
+                button.disabled = disable;
+            });
+        }
+
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                resetSession("Session expired. Please sign in again.");
+            }
+        }
+    </script>
+</body>
+</html>
