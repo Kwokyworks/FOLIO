@@ -13,6 +13,9 @@
             --background: #f5f6fa;
             --text: #333;
             --border: #ddd;
+            --light-bg: #f9f9f9;
+            --success: #27ae60;
+            --error: #e74c3c;
         }
 
         body {
@@ -21,75 +24,99 @@
             padding: 20px;
             background: var(--background);
             color: var(--text);
-            line-height: 1.6;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
         h2 {
             color: var(--primary);
             border-bottom: 2px solid var(--secondary);
-            padding-bottom: 10px;
+            padding-bottom: 8px;
+            margin: 0 0 20px;
+            font-size: 1.8em;
+            text-align: center;
         }
 
         h3 {
             color: var(--primary);
-            margin-top: 20px;
+            margin: 10px 0;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+
+        h4 {
+            color: var(--primary);
+            margin: 5px 0;
+            font-size: 1.1em;
         }
 
         #loginSection {
             max-width: 400px;
-            margin: 0 auto 20px;
-            padding: 20px;
+            margin: 50px auto 20px;
+            padding: 25px;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        form {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        .login-form {
+            display: grid;
+            gap: 15px;
         }
 
-        label {
-            display: block;
-            margin: 15px 0 5px;
-            font-weight: 500;
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-size: 0.95em;
             color: var(--primary);
+            font-weight: 500;
         }
 
-        input,
-        select {
-            width: 100%;
-            max-width: 300px;
-            padding: 8px;
+        .form-group input,
+        .form-group select {
+            padding: 10px;
             border: 1px solid var(--border);
             border-radius: 4px;
+            font-size: 1em;
+            width: 100%;
             box-sizing: border-box;
-            transition: border-color 0.3s;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-        select[multiple] {
-            height: 100px;
-        }
-
-        input:focus,
-        select:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             outline: none;
             border-color: var(--secondary);
             box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
         }
 
         button {
             background: var(--secondary);
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.3s;
-            margin: 5px;
+            font-size: 0.9em;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
         }
 
         button:hover {
@@ -101,17 +128,128 @@
             cursor: not-allowed;
         }
 
+        .secondary-button {
+            background: transparent;
+            color: var(--secondary);
+            border: 1px solid var(--secondary);
+        }
+
+        .secondary-button:hover {
+            background: #e6f0fa;
+        }
+
+        #logoutButton {
+            background: var(--accent);
+            margin: 0 0 20px;
+        }
+
+        #logoutButton:hover {
+            background: #c0392b;
+        }
+
+        #loginError {
+            color: var(--accent);
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #searchForm {
+            display: grid;
+            gap: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-row {
+            display: grid;
+            gap: 15px;
+        }
+
+        .single-line {
+            grid-template-columns: repeat(3, 1fr);
+            align-items: end;
+        }
+
+        .multi-selects {
+            display: flex;
+            gap: 20px;
+            background: var(--light-bg);
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .multi-select-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .multi-select-container select[multiple] {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: white;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8em;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .search-actions {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+        }
+
         .column-select {
             background: white;
             padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .column-group {
+            display: grid;
+            gap: 10px;
+        }
+
+        .basic-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .column-select label {
-            display: inline-block;
-            margin: 5px 15px 5px 0;
+            margin: 0;
+            font-size: 0.85em;
             cursor: pointer;
         }
 
@@ -121,23 +259,162 @@
             vertical-align: middle;
         }
 
+        /* MARC Field Controls Container */
+        .marc-field-control {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            /* Increased for better spacing */
+            align-items: flex-start;
+            padding: 10px;
+            background: var(--light-bg);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Input Wrapper */
+        .marc-field-input-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 220px;
+            max-width: 320px;
+        }
+
+        /* Input Styling */
+        #marcFieldInput {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 0.9em;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #marcFieldInput:focus {
+            border-color: var(--secondary);
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        #marcFieldInput.valid {
+            border-color: var(--success);
+            background: #f0fff0;
+            /* Light green background for valid input */
+        }
+
+        #marcFieldInput.invalid {
+            border-color: var(--error);
+            background: #fff0f0;
+            /* Light red background for invalid input */
+        }
+
+        /* Datalist Suggestions */
+        #marcSuggestions {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: white;
+            position: absolute;
+            z-index: 10;
+            width: 100%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* MARC Tags Display */
+        .marc-field-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            min-height: 30px;
+            /* Ensures space even when empty */
+            padding: 5px;
+            border: 1px dashed var(--border);
+            /* Visual cue for tag area */
+            border-radius: 4px;
+        }
+
+        .marc-field-tag {
+            background: var(--secondary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 16px;
+            /* More rounded for a modern look */
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.3s;
+        }
+
+        .marc-field-tag:hover {
+            background: #2980b9;
+            /* Darker hover effect */
+        }
+
+        .marc-field-tag .remove-tag {
+            background: rgba(255, 255, 255, 0.2);
+            /* Subtle background for remove button */
+            color: white;
+            border: none;
+            padding: 0;
+            font-size: 1em;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .marc-field-tag .remove-tag:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Update Button */
+        #updateResults {
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background: var(--secondary);
+            color: white;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+
+        #updateResults:hover {
+            background: #2980b9;
+        }
+
+        /* Empty State */
+        .marc-field-tags:empty::before {
+            content: "No MARC fields selected";
+            color: #777;
+            font-style: italic;
+            padding: 5px;
+        }
+
         #results {
             background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             position: relative;
+            flex-grow: 1;
+            overflow: auto;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
+            font-size: 0.9em;
         }
 
         th,
         td {
-            padding: 12px;
+            padding: 8px;
             border: 1px solid var(--border);
             text-align: left;
         }
@@ -157,28 +434,23 @@
         }
 
         .marc-field {
-            max-width: 200px;
+            max-width: 180px;
             white-space: pre-wrap;
             word-wrap: break-word;
-            font-size: 0.9em;
-        }
-
-        .marc-subfield {
-            display: block;
-            margin: 2px 0;
+            font-size: 0.85em;
         }
 
         .pagination {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 15px 0;
-            gap: 10px;
+            padding: 10px 0;
+            gap: 5px;
         }
 
         .pagination button {
-            min-width: 30px;
-            padding: 8px;
+            min-width: 25px;
+            padding: 6px;
         }
 
         .pagination .current-page {
@@ -186,22 +458,19 @@
         }
 
         .pagination span {
-            margin: 0 10px;
+            margin: 0 5px;
+            font-size: 0.9em;
         }
 
         #resultSummary {
             color: var(--primary);
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            font-size: 0.95em;
         }
 
         .hidden {
-            display: none;
-        }
-
-        #loginError {
-            color: var(--accent);
-            margin-top: 10px;
+            display: none !important;
         }
 
         #loadingIndicator {
@@ -209,120 +478,156 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            padding: 15px 25px;
+            padding: 10px 20px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
             border-radius: 4px;
             display: none;
-        }
-
-        .export-buttons {
-            margin-top: 15px;
+            font-size: 0.9em;
         }
     </style>
 </head>
 
 <body>
-    <h2>FOLIO Malaysia Research Assessment (MyRA) lookup tool</h2>
+    <h2>FOLIO Malaysia Research Assessment (MyRA) Lookup Tool</h2>
 
     <div id="loginSection">
-        <h3>Login</h3>
-        <form id="loginForm">
-            <label for="endpoint">Endpoint:</label>
-            <select id="endpoint" required>
-                <option value="https://okapi-demo2.folio.ebsco.com">Demo2</option>
-                <option value="https://okapi-demo1.folio.ebsco.com">Demo 1</option>
-                <option value="https://okapi-demo.folio.ebsco.com">Demo</option>
-                <option value="https://folio-okapi.example.com">Example FOLIO</option>
-                <option value="https://okapi-test.folio.org">Test Environment</option>
-            </select>
-
-            <label for="tenant">Tenant:</label>
-            <select id="tenant" required>
-                <!-- Options will be populated dynamically based on endpoint -->
-            </select>
-
-            <label for="username">Username:</label>
-            <input type="text" id="username" placeholder="Enter username" required>
-
-            <label for="password">Password:</label>
-            <input type="password" id="password" placeholder="Enter password" required>
-
-            <button type="submit">Login</button>
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="endpoint">Endpoint</label>
+                <select id="endpoint" required>
+                    <option value="https://okapi-demo2.folio.ebsco.com">Demo2</option>
+                    <option value="https://okapi-tarumt.folio.ebsco.com">TARUMT</option>
+                    <option value="https://okapi-demo1.folio.ebsco.com">Demo 1</option>
+                    <option value="https://okapi-demo.folio.ebsco.com">Demo</option>
+                    <option value="https://folio-okapi.example.com">Example FOLIO</option>
+                    <option value="https://okapi-test.folio.org">Test Environment</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="tenant">Tenant</label>
+                <select id="tenant" required>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required>
+            </div>
+            <div class="form-actions">
+                <button type="submit">Login</button>
+            </div>
+            <p id="loginError"></p>
         </form>
-        <p id="loginError"></p>
     </div>
 
-    <form id="searchForm" class="hidden">
-        <label for="keyword">Title:</label>
-        <input type="text" id="keyword" placeholder="e.g., Harry Potter">
+    <main>
+        <button id="logoutButton" class="hidden">Logout</button>
 
-        <label for="location">Location (Hold Ctrl/Cmd to select multiple):</label>
-        <select id="location" multiple>
-            <option value="">Any</option>
-        </select>
+        <form id="searchForm" class="hidden">
+            <div class="search-row single-line" id="searchInputs">
+                <div class="form-group">
+                    <label for="keyword">Title</label>
+                    <input type="text" id="keyword" placeholder="e.g., Harry Potter">
+                </div>
+                <div class="form-group">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" placeholder="e.g., Wizards">
+                </div>
+                <div class="form-group tooltip">
+                    <label for="electronicAccess">Electronic Access</label>
+                    <select id="electronicAccess">
+                        <option value="">Any</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                    <span class="tooltiptext">Filter by electronic access availability</span>
+                </div>
+            </div>
+            <div class="search-row multi-selects" id="multiSelects">
+                <div class="multi-select-container">
+                    <label for="location">Location</label>
+                    <select id="location" multiple>
+                        <option value="">Any</option>
+                    </select>
+                </div>
+                <div class="multi-select-container">
+                    <label for="materialType">Material Type</label>
+                    <select id="materialType" multiple>
+                        <option value="">Any</option>
+                    </select>
+                </div>
+            </div>
+            <div class="search-actions">
+                <button type="submit" id="searchButton"><span>🔍</span> Search</button>
+                <button type="button" id="resetForm" class="secondary-button"><span>⟳</span> Reset</button>
+                <button type="button" id="exportCSV" class="secondary-button" onclick="exportToCSV()">Export
+                    CSV</button>
+                <button type="button" id="exportJSON" class="secondary-button" onclick="exportToJSON()">Export
+                    JSON</button>
+            </div>
+        </form>
 
-        <label for="materialType">Material Type (Hold Ctrl/Cmd to select multiple):</label>
-        <select id="materialType" multiple>
-            <option value="">Any</option>
-        </select>
-
-        <label for="subject">Subject:</label>
-        <input type="text" id="subject" placeholder="e.g., Wizards">
-
-        <label for="electronicAccess">Electronic Access:</label>
-        <select id="electronicAccess">
-            <option value="">Any</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-        </select>
-
-        <button type="submit">Search</button>
-        <button type="button" id="resetForm">Reset</button>
-    </form>
-
-    <div id="columnSelect" class="column-select hidden">
-        <h3>Display Columns</h3>
-        <div>
-            <label><input type="checkbox" id="colTitle" checked> Title</label>
-            <label><input type="checkbox" id="colId" checked> Instance ID</label>
-            <label><input type="checkbox" id="colHrid" checked> HRID</label>
-            <label><input type="checkbox" id="colSubjects"> Subjects</label>
-            <label><input type="checkbox" id="colElectronic" checked> Electronic Access</label>
-            <label><input type="checkbox" id="colSrsId" checked> SRS ID</label>
+        <div id="columnSelect" class="column-select hidden">
+            <h3>Display Columns</h3>
+            <div class="column-group">
+                <h4>Basic Fields</h4>
+                <div class="basic-fields">
+                    <label><input type="checkbox" id="colTitle" checked> Title</label>
+                    <label><input type="checkbox" id="colId" checked> Instance ID</label>
+                    <label><input type="checkbox" id="colHrid" checked> HRID</label>
+                    <label><input type="checkbox" id="colSubjects"> Subjects</label>
+                    <label><input type="checkbox" id="colElectronic" checked> Electronic Access</label>
+                    <label><input type="checkbox" id="colSrsId" checked> SRS ID</label>
+                </div>
+            </div>
+            <div class="column-group marc-fields-collapsible">
+                <h3 onclick="toggleMarcFields()">MARC Fields ▾</h3>
+                <div id="marcFieldsContent" class="marc-fields-content">
+                    <div class="marc-field-control">
+                        <div class="marc-field-input-wrapper">
+                            <input type="text" id="marcFieldInput" placeholder="e.g., 020$a or ISBN $a"
+                                list="marcSuggestions">
+                            <datalist id="marcSuggestions">
+                                <option value="020">ISBN</option>
+                                <option value="020$a">ISBN Number</option>
+                                <option value="100">Personal Name</option>
+                                <option value="100$a">Author Name</option>
+                                <option value="245">Title Proper</option>
+                                <option value="245$a">Title</option>
+                                <option value="245$c">Statement of Responsibility</option>
+                                <option value="260">Publication</option>
+                                <option value="260$a">Place of Publication</option>
+                                <option value="260$b">Publisher</option>
+                                <option value="260$c">Date of Publication</option>
+                                <option value="264">Production/Publication</option>
+                                <option value="264$a">Place of Production</option>
+                                <option value="264$b">Producer/Publisher</option>
+                                <option value="264$c">Date of Production</option>
+                            </datalist>
+                        </div>
+                        <br>
+                        <button type="button" id="updateResults" class="secondary-button">Update Results</button>
+                    </div>
+                    <div id="marcFieldTags" class="marc-field-tags"></div>
+                </div>
+            </div>
         </div>
-        <h4>MARC Fields</h4>
-        <div>
-            <label><input type="checkbox" id="selectAllMarc"> Select/Unselect All MARC Fields</label>
-        </div>
-        <div>
-            <label><input type="checkbox" id="colMarc020" checked> 020 (ISBN)</label>
-            <label><input type="checkbox" id="colMarc090"> 090 (Call Number)</label>
-            <label><input type="checkbox" id="colMarc100"> 100 (Author)</label>
-            <label><input type="checkbox" id="colMarc245" checked> 245 (Title)</label>
-            <label><input type="checkbox" id="colMarc250"> 250 (Edition)</label>
-            <label><input type="checkbox" id="colMarc260"> 260 (Publication)</label>
-            <label><input type="checkbox" id="colMarc260c"> 260$c (Date)</label>
-            <label><input type="checkbox" id="colMarc264"> 264 (Production)</label>
-            <label><input type="checkbox" id="colMarc264c"> 264$c (Date)</label>
-            <label><input type="checkbox" id="colMarc300"> 300 (Physical Desc)</label>
-            <label><input type="checkbox" id="colMarc650"> 650 (Subject)</label>
-        </div>
-    </div>
 
-    <div id="results">
-        <div id="resultSummary">
-            <div id="summaryText"></div>
+        <div id="results">
+            <div id="resultSummary">
+                <div id="summaryText"></div>
+            </div>
+            <div id="resultsTable"></div>
+            <div id="loadingIndicator">Loading...</div>
         </div>
-        <div id="resultsTable"></div>
-        <div id="loadingIndicator">Loading...</div>
-        <div class="export-buttons hidden" id="exportOptions">
-            <button onclick="exportToCSV()">Export to CSV</button>
-            <button onclick="exportToJSON()">Export to JSON</button>
-        </div>
-    </div>
 
-    <div id="pagination" class="pagination hidden"></div>
+        <div id="pagination" class="pagination hidden"></div>
+    </main>
 
     <script>
         let OKAPI_URL = '';
@@ -333,14 +638,22 @@
         const pageSize = 50;
         let totalRecords = 0;
         let currentResults = [];
+        let marcFieldsToDisplay = { mainFields: [], subFields: [] };
 
-        // Define endpoint-tenant relationships
         const endpointTenants = {
             'https://okapi-demo.folio.ebsco.com': [
                 { value: 'fs00000002', text: 'fs00001234' }
-            ], 'https://okapi-demo1.folio.ebsco.com': [
+            ],
+            'https://okapi-tarumt.folio.ebsco.com': [
+                { value: 'fs00001234', text: 'fs00001234' }
+            ],
+            'https://okapi-demo2.folio.ebsco.com': [
+                { value: 'fs00001176', text: 'fs00001176' }
+            ],
+            'https://okapi-demo1.folio.ebsco.com': [
                 { value: 'idksoguess', text: 'idksoguess' }
-            ], 'https://okapi-demo2.folio.ebsco.com': [
+            ],
+            'https://okapi-demo2.folio.ebsco.com': [
                 { value: 'fs00001176', text: 'fs00001176 (Default)' }
             ],
             'https://folio-okapi.example.com': [
@@ -353,10 +666,27 @@
             ]
         };
 
-        // Function to populate tenant dropdown based on endpoint
+        const marcFieldLabels = {
+            '020': 'ISBN',
+            '020$a': 'ISBN Number',
+            '100': 'Personal Name',
+            '100$a': 'Author Name',
+            '245': 'Title Proper',
+            '245$a': 'Title',
+            '245$c': 'Statement of Responsibility',
+            '260': 'Publication',
+            '260$a': 'Place of Publication',
+            '260$b': 'Publisher',
+            '260$c': 'Date of Publication',
+            '264': 'Production/Publication',
+            '264$a': 'Place of Production',
+            '264$b': 'Producer/Publisher',
+            '264$c': 'Date of Production'
+        };
+
         function populateTenantDropdown(endpoint) {
             const tenantSelect = document.getElementById('tenant');
-            tenantSelect.innerHTML = ''; // Clear existing options
+            tenantSelect.innerHTML = '';
             const tenants = endpointTenants[endpoint] || [];
             tenants.forEach(tenant => {
                 const option = document.createElement('option');
@@ -366,13 +696,16 @@
             });
         }
 
-        // Initialize tenant dropdown with default endpoint
         const endpointSelect = document.getElementById('endpoint');
         populateTenantDropdown(endpointSelect.value);
 
-        // Update tenant options when endpoint changes
         endpointSelect.addEventListener('change', (e) => {
             populateTenantDropdown(e.target.value);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchForm = document.getElementById('searchForm');
+            searchForm.classList.add('hidden');
         });
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -400,6 +733,7 @@
                 document.getElementById('loginSection').classList.add('hidden');
                 document.getElementById('searchForm').classList.remove('hidden');
                 document.getElementById('columnSelect').classList.remove('hidden');
+                document.getElementById('logoutButton').classList.remove('hidden');
                 document.getElementById('loginError').textContent = '';
 
                 await populateLocations();
@@ -410,6 +744,22 @@
             }
         });
 
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            token = null;
+            OKAPI_URL = '';
+            TENANT_ID = '';
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('searchForm').classList.add('hidden');
+            document.getElementById('columnSelect').classList.add('hidden');
+            document.getElementById('logoutButton').classList.add('hidden');
+            document.getElementById('resultsTable').innerHTML = '';
+            document.getElementById('summaryText').textContent = '';
+            document.getElementById('pagination').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+            marcFieldsToDisplay = { mainFields: [], subFields: [] };
+            updateMarcFieldTags();
+        });
+
         async function populateLocations() {
             try {
                 const response = await fetch(`${OKAPI_URL}/locations?limit=1000`, {
@@ -418,9 +768,7 @@
                 if (!response.ok) throw new Error('Failed to fetch locations');
                 const data = await response.json();
                 const locationSelect = document.getElementById('location');
-                const sortedLocations = data.locations.sort((a, b) =>
-                    a.name.localeCompare(b.name)
-                );
+                const sortedLocations = data.locations.sort((a, b) => a.name.localeCompare(b.name));
                 sortedLocations.forEach(loc => {
                     const option = document.createElement('option');
                     option.value = loc.id;
@@ -440,9 +788,7 @@
                 if (!response.ok) throw new Error('Failed to fetch material types');
                 const data = await response.json();
                 const materialTypeSelect = document.getElementById('materialType');
-                const sortedMaterialTypes = data.mtypes.sort((a, b) =>
-                    a.name.localeCompare(b.name)
-                );
+                const sortedMaterialTypes = data.mtypes.sort((a, b) => a.name.localeCompare(b.name));
                 sortedMaterialTypes.forEach(mt => {
                     const option = document.createElement('option');
                     option.value = mt.id;
@@ -460,6 +806,9 @@
                 alert('Please log in first.');
                 return;
             }
+
+            const searchButton = document.getElementById('searchButton');
+            searchButton.disabled = true;
 
             const keyword = document.getElementById('keyword').value.trim();
             const locationSelect = document.getElementById('location');
@@ -491,6 +840,7 @@
 
             if (conditions.length === 0) {
                 alert('Please enter at least one search criterion.');
+                searchButton.disabled = false;
                 return;
             }
 
@@ -498,6 +848,7 @@
             console.log('Generated CQL Query:', currentQuery);
             currentPage = 0;
             await fetchPage(currentPage);
+            searchButton.disabled = false;
         });
 
         document.getElementById('resetForm').addEventListener('click', () => {
@@ -505,9 +856,10 @@
             document.getElementById('resultsTable').innerHTML = '';
             document.getElementById('summaryText').textContent = '';
             document.getElementById('pagination').classList.add('hidden');
-            document.getElementById('exportOptions').classList.add('hidden');
             currentQuery = '';
             currentResults = [];
+            marcFieldsToDisplay = { mainFields: [], subFields: [] };
+            updateMarcFieldTags();
         });
 
         async function fetchPage(page) {
@@ -539,7 +891,6 @@
                     console.warn('No instances found in response');
                     displayResults([]);
                     updatePagination();
-                    document.getElementById('exportOptions').classList.remove('hidden');
                     loadingIndicator.style.display = 'none';
                     return;
                 }
@@ -621,7 +972,6 @@
                 currentResults = instancesWithDetails;
                 displayResults(instancesWithDetails);
                 updatePagination();
-                document.getElementById('exportOptions').classList.remove('hidden');
             } catch (error) {
                 console.error('Error fetching data:', error);
                 document.getElementById('resultsTable').innerHTML = `<p>Error retrieving results: ${error.message}</p>`;
@@ -631,33 +981,187 @@
         }
 
         function extractMarcFields(fields) {
-            const targetTags = ['020', '090', '100', '245', '250', '260', '264', '300', '650'];
             const marcFields = {};
-
             fields.forEach(field => {
                 const tag = Object.keys(field)[0];
-                if (targetTags.includes(tag)) {
-                    const value = field[tag];
-                    if (typeof value === 'string') {
-                        marcFields[tag] = value;
-                    } else if (value.subfields) {
-                        marcFields[`${tag}_raw`] = `${value.ind1}${value.ind2} ${value.subfields.map(sf => {
-                            const subKey = Object.keys(sf)[0];
-                            return `$${subKey} ${sf[subKey]}`;
-                        }).join(' ')}`;
-                        let readable = value.subfields.map(sf => {
-                            const subKey = Object.keys(sf)[0];
-                            return `${subKey}: ${sf[subKey]}`;
-                        }).join('\n');
-                        marcFields[tag] = readable;
-                        if (tag === '260' || tag === '264') {
-                            const dateSubfield = value.subfields.find(sf => sf.c);
-                            if (dateSubfield) marcFields[`${tag}$c`] = dateSubfield.c;
-                        }
-                    }
+                const value = field[tag];
+                if (typeof value === 'string') {
+                    marcFields[tag] = value;
+                } else if (value.subfields) {
+                    marcFields[`${tag}_raw`] = `${value.ind1}${value.ind2} ${value.subfields.map(sf => {
+                        const subKey = Object.keys(sf)[0];
+                        return `$${subKey} ${sf[subKey]}`;
+                    }).join(' ')}`;
+                    marcFields[tag] = value.subfields.map(sf => {
+                        const subKey = Object.keys(sf)[0];
+                        return `${subKey}: ${sf[subKey]}`;
+                    }).join('\n');
+                    value.subfields.forEach(sf => {
+                        const subKey = Object.keys(sf)[0];
+                        marcFields[`${tag}$${subKey}`] = sf[subKey];
+                    });
                 }
             });
             return marcFields;
+        }
+
+        function getSelectedMarcFields() {
+            return marcFieldsToDisplay;
+        }
+
+        function validateMarcField(field) {
+            const marcRegex = /^\d{3}(?:\$\w)?$/;
+            return marcRegex.test(field);
+        }
+
+        function updateMarcFieldTags() {
+            const tagsDiv = document.getElementById('marcFieldTags');
+            tagsDiv.innerHTML = '';
+            const allFields = [...marcFieldsToDisplay.mainFields, ...marcFieldsToDisplay.subFields];
+            allFields.forEach(field => {
+                const tag = document.createElement('div');
+                tag.className = 'marc-field-tag';
+                tag.innerHTML = `
+                    ${field} - ${marcFieldLabels[field] || 'Custom'}
+                    <button class="remove-tag" onclick="removeMarcField('${field}')">×</button>
+                `;
+                tagsDiv.appendChild(tag);
+            });
+        }
+
+        document.getElementById('marcFieldInput').addEventListener('input', (e) => {
+            const input = e.target;
+            const value = input.value.trim();
+            if (value) {
+                input.classList.toggle('valid', validateMarcField(value));
+                input.classList.toggle('invalid', !validateMarcField(value));
+            } else {
+                input.classList.remove('valid', 'invalid');
+            }
+        });
+
+        document.getElementById('marcFieldInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addMarcField();
+            }
+        });
+
+        // Add MARC Field with Feedback
+        function addMarcField() {
+            const input = document.getElementById('marcFieldInput');
+            const value = input.value.trim();
+
+            if (!value) {
+                input.classList.add('invalid');
+                setTimeout(() => input.classList.remove('invalid'), 1000); // Brief flash
+                return;
+            }
+
+            if (!validateMarcField(value)) {
+                input.classList.add('invalid');
+                input.title = 'Invalid format (e.g., 020 or 020$a)';
+                setTimeout(() => {
+                    input.classList.remove('invalid');
+                    input.title = '';
+                }, 1500);
+                return;
+            }
+
+            const fields = value.split(',').map(f => f.trim()).filter(f => f);
+            let added = false;
+            fields.forEach(field => {
+                if (field.includes('$')) {
+                    if (!marcFieldsToDisplay.subFields.includes(field)) {
+                        marcFieldsToDisplay.subFields.push(field);
+                        added = true;
+                    }
+                } else {
+                    if (!marcFieldsToDisplay.mainFields.includes(field)) {
+                        marcFieldsToDisplay.mainFields.push(field);
+                        added = true;
+                    }
+                }
+            });
+
+            if (added) {
+                input.value = '';
+                input.classList.add('valid');
+                setTimeout(() => input.classList.remove('valid'), 1000); // Success flash
+                updateMarcFieldTags();
+            } else {
+                input.classList.add('invalid');
+                setTimeout(() => input.classList.remove('invalid'), 1000); // Duplicate flash
+            }
+        }
+
+        // Update MARC Field Tags with Animation
+        function updateMarcFieldTags() {
+            const tagsDiv = document.getElementById('marcFieldTags');
+            tagsDiv.innerHTML = '';
+            const allFields = [...marcFieldsToDisplay.mainFields, ...marcFieldsToDisplay.subFields];
+
+            allFields.forEach(field => {
+                const tag = document.createElement('div');
+                tag.className = 'marc-field-tag';
+                tag.innerHTML = `
+            ${field} - ${marcFieldLabels[field] || 'Custom'}
+            <button class="remove-tag" onclick="removeMarcField('${field}')">×</button>
+        `;
+                tagsDiv.appendChild(tag);
+                // Add a subtle fade-in animation
+                tag.style.opacity = '0';
+                setTimeout(() => {
+                    tag.style.transition = 'opacity 0.3s';
+                    tag.style.opacity = '1';
+                }, 10);
+            });
+        }
+
+        // Remove MARC Field with Animation
+        window.removeMarcField = function (field) {
+            const tag = Array.from(document.querySelectorAll('.marc-field-tag')).find(t => t.textContent.includes(field));
+            if (tag) {
+                tag.style.transition = 'opacity 0.3s';
+                tag.style.opacity = '0';
+                setTimeout(() => {
+                    marcFieldsToDisplay.mainFields = marcFieldsToDisplay.mainFields.filter(f => f !== field);
+                    marcFieldsToDisplay.subFields = marcFieldsToDisplay.subFields.filter(f => f !== field);
+                    updateMarcFieldTags();
+                }, 300);
+            }
+        };
+
+        // Event Listeners
+        document.getElementById('marcFieldInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addMarcField();
+            }
+        });
+
+        document.getElementById('marcFieldInput').addEventListener('input', (e) => {
+            const input = e.target;
+            const value = input.value.trim();
+            if (value) {
+                input.classList.toggle('valid', validateMarcField(value));
+                input.classList.toggle('invalid', !validateMarcField(value));
+            } else {
+                input.classList.remove('valid', 'invalid');
+            }
+        });
+
+        document.getElementById('updateResults').addEventListener('click', () => {
+            if (currentQuery) {
+                displayResults(currentResults);
+            }
+        });
+
+        function toggleMarcFields() {
+            const content = document.getElementById('marcFieldsContent');
+            content.classList.toggle('active');
+            const header = content.previousElementSibling;
+            header.textContent = header.textContent.replace(content.classList.contains('active') ? '▾' : '▸', content.classList.contains('active') ? '▸' : '▾');
         }
 
         function displayResults(instances) {
@@ -670,19 +1174,10 @@
                 hrid: document.getElementById('colHrid').checked,
                 subjects: document.getElementById('colSubjects').checked,
                 electronic: document.getElementById('colElectronic').checked,
-                srsId: document.getElementById('colSrsId').checked,
-                marc020: document.getElementById('colMarc020').checked,
-                marc090: document.getElementById('colMarc090').checked,
-                marc100: document.getElementById('colMarc100').checked,
-                marc245: document.getElementById('colMarc245').checked,
-                marc250: document.getElementById('colMarc250').checked,
-                marc260: document.getElementById('colMarc260').checked,
-                marc260c: document.getElementById('colMarc260c').checked,
-                marc264: document.getElementById('colMarc264').checked,
-                marc264c: document.getElementById('colMarc264c').checked,
-                marc300: document.getElementById('colMarc300').checked,
-                marc650: document.getElementById('colMarc650').checked
+                srsId: document.getElementById('colSrsId').checked
             };
+
+            const { mainFields, subFields } = getSelectedMarcFields();
 
             const start = currentPage * pageSize + 1;
             const end = Math.min((currentPage + 1) * pageSize, totalRecords);
@@ -700,17 +1195,8 @@
             if (cols.subjects) html += '<th>Subjects</th>';
             if (cols.electronic) html += '<th>Electronic Access</th>';
             if (cols.srsId) html += '<th>SRS ID</th>';
-            if (cols.marc020) html += '<th class="marc-field">020</th>';
-            if (cols.marc090) html += '<th class="marc-field">090</th>';
-            if (cols.marc100) html += '<th class="marc-field">100</th>';
-            if (cols.marc245) html += '<th class="marc-field">245</th>';
-            if (cols.marc250) html += '<th class="marc-field">250</th>';
-            if (cols.marc260) html += '<th class="marc-field">260</th>';
-            if (cols.marc260c) html += '<th class="marc-field">260$c</th>';
-            if (cols.marc264) html += '<th class="marc-field">264</th>';
-            if (cols.marc264c) html += '<th class="marc-field">264$c</th>';
-            if (cols.marc300) html += '<th class="marc-field">300</th>';
-            if (cols.marc650) html += '<th class="marc-field">650</th>';
+            mainFields.forEach(field => html += `<th class="marc-field">${marcFieldLabels[field] || field}</th>`);
+            subFields.forEach(field => html += `<th class="marc-field">${marcFieldLabels[field] || field}</th>`);
             html += '</tr></thead><tbody>';
 
             instances.forEach(instance => {
@@ -721,17 +1207,12 @@
                 if (cols.subjects) html += `<td>${instance.subjects?.join(', ') || 'None'}</td>`;
                 if (cols.electronic) html += `<td>${instance.hasElectronicAccess ? 'Yes' : 'No'}</td>`;
                 if (cols.srsId) html += `<td>${instance.srsId || 'N/A'}</td>`;
-                if (cols.marc020) html += `<td class="marc-field">${instance.marcFields['020'] || ''}</td>`;
-                if (cols.marc090) html += `<td class="marc-field">${instance.marcFields['090'] || ''}</td>`;
-                if (cols.marc100) html += `<td class="marc-field">${instance.marcFields['100'] || ''}</td>`;
-                if (cols.marc245) html += `<td class="marc-field">${instance.marcFields['245'] || ''}</td>`;
-                if (cols.marc250) html += `<td class="marc-field">${instance.marcFields['250'] || ''}</td>`;
-                if (cols.marc260) html += `<td class="marc-field">${instance.marcFields['260'] || ''}</td>`;
-                if (cols.marc260c) html += `<td class="marc-field">${instance.marcFields['260$c'] || ''}</td>`;
-                if (cols.marc264) html += `<td class="marc-field">${instance.marcFields['264'] || ''}</td>`;
-                if (cols.marc264c) html += `<td class="marc-field">${instance.marcFields['264$c'] || ''}</td>`;
-                if (cols.marc300) html += `<td class="marc-field">${instance.marcFields['300'] || ''}</td>`;
-                if (cols.marc650) html += `<td class="marc-field">${instance.marcFields['650'] || ''}</td>`;
+                mainFields.forEach(field => {
+                    html += `<td class="marc-field">${instance.marcFields[field] || ''}</td>`;
+                });
+                subFields.forEach(field => {
+                    html += `<td class="marc-field">${instance.marcFields[field] || ''}</td>`;
+                });
                 html += '</tr>';
             });
 
@@ -773,47 +1254,27 @@
             }
         };
 
-        // Add event listener for Select/Unselect All MARC Fields checkbox
-        document.getElementById('selectAllMarc').addEventListener('change', function () {
-            const marcCheckboxes = [
-                'colMarc020', 'colMarc090', 'colMarc100', 'colMarc245', 'colMarc250',
-                'colMarc260', 'colMarc260c', 'colMarc264', 'colMarc264c', 'colMarc300', 'colMarc650'
-            ];
-            const isChecked = this.checked;
-            marcCheckboxes.forEach(id => {
-                document.getElementById(id).checked = isChecked;
+        document.querySelectorAll('.column-select input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                if (currentQuery) displayResults(currentResults);
             });
-            if (currentQuery) fetchPage(currentPage); // Refresh results if a query exists
-        });
-
-        document.querySelectorAll('.column-select input').forEach(checkbox => {
-            if (checkbox.id !== 'selectAllMarc') { // Exclude the select all checkbox from individual refresh
-                checkbox.addEventListener('change', () => {
-                    if (currentQuery) fetchPage(currentPage);
-                });
-            }
         });
 
         function exportToCSV() {
+            if (!currentResults.length) {
+                alert('No results to export. Please perform a search first.');
+                return;
+            }
             const cols = {
                 title: document.getElementById('colTitle').checked,
                 id: document.getElementById('colId').checked,
                 hrid: document.getElementById('colHrid').checked,
                 subjects: document.getElementById('colSubjects').checked,
                 electronic: document.getElementById('colElectronic').checked,
-                srsId: document.getElementById('colSrsId').checked,
-                marc020: document.getElementById('colMarc020').checked,
-                marc090: document.getElementById('colMarc090').checked,
-                marc100: document.getElementById('colMarc100').checked,
-                marc245: document.getElementById('colMarc245').checked,
-                marc250: document.getElementById('colMarc250').checked,
-                marc260: document.getElementById('colMarc260').checked,
-                marc260c: document.getElementById('colMarc260c').checked,
-                marc264: document.getElementById('colMarc264').checked,
-                marc264c: document.getElementById('colMarc264c').checked,
-                marc300: document.getElementById('colMarc300').checked,
-                marc650: document.getElementById('colMarc650').checked
+                srsId: document.getElementById('colSrsId').checked
             };
+
+            const { mainFields, subFields } = getSelectedMarcFields();
 
             let csv = [];
             let headers = [];
@@ -823,17 +1284,8 @@
             if (cols.subjects) headers.push('Subjects');
             if (cols.electronic) headers.push('Electronic Access');
             if (cols.srsId) headers.push('SRS ID');
-            if (cols.marc020) headers.push('020');
-            if (cols.marc090) headers.push('090');
-            if (cols.marc100) headers.push('100');
-            if (cols.marc245) headers.push('245');
-            if (cols.marc250) headers.push('250');
-            if (cols.marc260) headers.push('260');
-            if (cols.marc260c) headers.push('260$c');
-            if (cols.marc264) headers.push('264');
-            if (cols.marc264c) headers.push('264$c');
-            if (cols.marc300) headers.push('300');
-            if (cols.marc650) headers.push('650');
+            mainFields.forEach(field => headers.push(marcFieldLabels[field] || field));
+            subFields.forEach(field => headers.push(marcFieldLabels[field] || field));
 
             csv.push(headers.join(','));
 
@@ -845,17 +1297,12 @@
                 if (cols.subjects) row.push(`"${instance.subjects?.join('; ') || 'None'}"`);
                 if (cols.electronic) row.push(`"${instance.hasElectronicAccess ? 'Yes' : 'No'}"`);
                 if (cols.srsId) row.push(`"${instance.srsId}"`);
-                if (cols.marc020) row.push(`"${instance.marcFields['020_raw'] || instance.marcFields['020'] || ''}"`);
-                if (cols.marc090) row.push(`"${instance.marcFields['090_raw'] || instance.marcFields['090'] || ''}"`);
-                if (cols.marc100) row.push(`"${instance.marcFields['100_raw'] || instance.marcFields['100'] || ''}"`);
-                if (cols.marc245) row.push(`"${instance.marcFields['245_raw'] || instance.marcFields['245'] || ''}"`);
-                if (cols.marc250) row.push(`"${instance.marcFields['250_raw'] || instance.marcFields['250'] || ''}"`);
-                if (cols.marc260) row.push(`"${instance.marcFields['260_raw'] || instance.marcFields['260'] || ''}"`);
-                if (cols.marc260c) row.push(`"${instance.marcFields['260$c'] || ''}"`);
-                if (cols.marc264) row.push(`"${instance.marcFields['264_raw'] || instance.marcFields['264'] || ''}"`);
-                if (cols.marc264c) row.push(`"${instance.marcFields['264$c'] || ''}"`);
-                if (cols.marc300) row.push(`"${instance.marcFields['300_raw'] || instance.marcFields['300'] || ''}"`);
-                if (cols.marc650) row.push(`"${instance.marcFields['650_raw'] || instance.marcFields['650'] || ''}"`);
+                mainFields.forEach(field => {
+                    row.push(`"${(instance.marcFields[field] || '').replace(/"/g, '""')}"`);
+                });
+                subFields.forEach(field => {
+                    row.push(`"${(instance.marcFields[field] || '').replace(/"/g, '""')}"`);
+                });
                 csv.push(row.join(','));
             });
 
@@ -869,25 +1316,20 @@
         }
 
         function exportToJSON() {
+            if (!currentResults.length) {
+                alert('No results to export. Please perform a search first.');
+                return;
+            }
             const cols = {
                 title: document.getElementById('colTitle').checked,
                 id: document.getElementById('colId').checked,
                 hrid: document.getElementById('colHrid').checked,
                 subjects: document.getElementById('colSubjects').checked,
                 electronic: document.getElementById('colElectronic').checked,
-                srsId: document.getElementById('colSrsId').checked,
-                marc020: document.getElementById('colMarc020').checked,
-                marc090: document.getElementById('colMarc090').checked,
-                marc100: document.getElementById('colMarc100').checked,
-                marc245: document.getElementById('colMarc245').checked,
-                marc250: document.getElementById('colMarc250').checked,
-                marc260: document.getElementById('colMarc260').checked,
-                marc260c: document.getElementById('colMarc260c').checked,
-                marc264: document.getElementById('colMarc264').checked,
-                marc264c: document.getElementById('colMarc264c').checked,
-                marc300: document.getElementById('colMarc300').checked,
-                marc650: document.getElementById('colMarc650').checked
+                srsId: document.getElementById('colSrsId').checked
             };
+
+            const { mainFields, subFields } = getSelectedMarcFields();
 
             const jsonData = currentResults.map(instance => {
                 let obj = {};
@@ -897,17 +1339,12 @@
                 if (cols.subjects) obj.subjects = instance.subjects || [];
                 if (cols.electronic) obj.electronicAccess = instance.hasElectronicAccess ? 'Yes' : 'No';
                 if (cols.srsId) obj.srsId = instance.srsId;
-                if (cols.marc020) obj['marc_020'] = instance.marcFields['020'] || '';
-                if (cols.marc090) obj['marc_090'] = instance.marcFields['090'] || '';
-                if (cols.marc100) obj['marc_100'] = instance.marcFields['100'] || '';
-                if (cols.marc245) obj['marc_245'] = instance.marcFields['245'] || '';
-                if (cols.marc250) obj['marc_250'] = instance.marcFields['250'] || '';
-                if (cols.marc260) obj['marc_260'] = instance.marcFields['260'] || '';
-                if (cols.marc260c) obj['marc_260c'] = instance.marcFields['260$c'] || '';
-                if (cols.marc264) obj['marc_264'] = instance.marcFields['264'] || '';
-                if (cols.marc264c) obj['marc_264c'] = instance.marcFields['264$c'] || '';
-                if (cols.marc300) obj['marc_300'] = instance.marcFields['300'] || '';
-                if (cols.marc650) obj['marc_650'] = instance.marcFields['650'] || '';
+                mainFields.forEach(field => {
+                    obj[`marc_${field}`] = instance.marcFields[field] || '';
+                });
+                subFields.forEach(field => {
+                    obj[`marc_${field}`] = instance.marcFields[field] || '';
+                });
                 return obj;
             });
 

@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO PIN Update</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #34495e;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #fff;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            word-wrap: break-word;
+            transition: opacity 0.3s;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+
+        .loading::after {
+            content: ".";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60% { content: "..."; }
+            80%, 100% { content: ""; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h3 { font-size: 1.3rem; }
+            .button-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Form -->
+        <div id="authForm">
+            <h3>FOLIO Login</h3>
+            <div class="form-group">
+                <label for="endpointSelect">Library System</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="https://okapi-demo2.folio.ebsco.com|fs00001176">Demo 2 Library</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <button id="authButton">Sign In</button>
+            <div id="authLoading" class="loading">Signing in...</div>
+            <div id="authResult" class="status" role="alert" aria-live="polite"></div>
+        </div>
+
+        <!-- PIN Update Form -->
+        <div id="pinUpdateContainer" style="display: none;">
+            <h3>Update PIN</h3>
+            <div class="button-group">
+                <button id="scanUserButton">Scan User Barcode</button>
+                <button id="cancelScanButton" class="secondary" style="display: none;">Cancel Scan</button>
+            </div>
+            <div class="form-group">
+                <label for="userBarcode">User Barcode</label>
+                <input type="text" id="userBarcode" placeholder="Enter or scan user barcode" maxlength="50" aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="newPin">New PIN</label>
+                <input type="password" id="newPin" placeholder="Enter new PIN" maxlength="16" aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="confirmNewPin">Confirm New PIN</label>
+                <input type="password" id="confirmNewPin" placeholder="Confirm new PIN" maxlength="16" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="updatePinButton">Update PIN</button>
+                <button id="resetPinButton" class="secondary">Reset</button>
+            </div>
+            <div id="reader"></div>
+            <div id="pinUpdateLoading" class="loading">Updating PIN...</div>
+            <div id="pinUpdateResult" class="status" role="alert" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authResult: document.getElementById("authResult"),
+            authForm: document.getElementById("authForm"),
+            pinUpdateContainer: document.getElementById("pinUpdateContainer"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            authLoading: document.getElementById("authLoading"),
+            pinUpdateLoading: document.getElementById("pinUpdateLoading"),
+            pinUpdateResult: document.getElementById("pinUpdateResult"),
+            userBarcode: document.getElementById("userBarcode"),
+            newPin: document.getElementById("newPin"),
+            confirmNewPin: document.getElementById("confirmNewPin"),
+            updatePinButton: document.getElementById("updatePinButton"),
+            resetPinButton: document.getElementById("resetPinButton"),
+            scanUserButton: document.getElementById("scanUserButton"),
+            cancelScanButton: document.getElementById("cancelScanButton"),
+            reader: document.getElementById("reader")
+        };
+
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let userId = null;
+        let isScanning = false;
+        let lastScanTime = 0;
+        const SCAN_DEBOUNCE_MS = 1000;
+
+        // Initialize saved endpoint
+        loadEndpoint();
+        setInterval(checkTokenExpiration, 60000);
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.updatePinButton.addEventListener("click", performPinUpdate);
+        elements.resetPinButton.addEventListener("click", resetPinForm);
+        elements.scanUserButton.addEventListener("click", startScanning);
+        elements.cancelScanButton.addEventListener("click", stopScanning);
+        elements.userBarcode.addEventListener("change", handleManualBarcode);
+        elements.password.addEventListener('input', () => {
+            elements.password.value = elements.password.value.replace(/\s/g, '');
+        });
+
+        // Network status handlers
+        window.addEventListener('online', () => {
+            showResult(elements.authResult, "Back online!", "success");
+        });
+        window.addEventListener('offline', () => {
+            showResult(elements.authResult, "No internet connection.", "error");
+        });
+
+        // Cleanup on unload
+        window.addEventListener('unload', () => {
+            if (isScanning) stopScanning();
+        });
+
+        // Authentication
+        async function handleAuth() {
+            const username = elements.username.value.trim();
+            const password = elements.password.value.trim();
+            [selectedEndpoint, tenantId] = elements.endpointSelect.value.split("|");
+
+            if (!username || !password) {
+                showResult(elements.authResult, "Please enter both username and password.", "error");
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50) {
+                showResult(elements.authResult, "Username or password too long.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    showResult(elements.authResult, "Successfully signed in!", "success");
+                    elements.authForm.style.display = "none";
+                    elements.pinUpdateContainer.style.display = "block";
+                    saveEndpoint();
+                } else {
+                    const error = await response.json();
+                    showResult(elements.authResult, `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`, "error");
+                }
+            } catch (err) {
+                showResult(elements.authResult, `Connection error: ${err.message}`, "error");
+            } finally {
+                elements.authLoading.style.display = "none";
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        // Start Barcode Scanning
+        function startScanning() {
+            if (!isTokenValid() || isScanning) return;
+
+            elements.reader.style.display = "block";
+            elements.cancelScanButton.style.display = "block";
+            elements.scanUserButton.textContent = "Scanning...";
+            toggleButtonState(true, 'pinUpdate', true);
+            showResult(elements.pinUpdateResult, "Scanning user barcode...", "info");
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                async (decodedText) => {
+                    const now = Date.now();
+                    if (now - lastScanTime < SCAN_DEBOUNCE_MS) return;
+
+                    lastScanTime = now;
+                    elements.userBarcode.value = sanitizeInput(decodedText);
+                    stopScanning();
+                    showResult(elements.pinUpdateResult, `User barcode scanned: ${decodedText}`, "success");
+                    await fetchUserIdByBarcode(decodedText);
+                }
+            ).catch(err => {
+                showResult(elements.pinUpdateResult, `Scanner error: ${err}`, "error");
+                stopScanning();
+            });
+
+            isScanning = true;
+        }
+
+        // Stop Barcode Scanning
+        function stopScanning() {
+            html5QrCode.stop().then(() => {
+                elements.reader.style.display = "none";
+                elements.cancelScanButton.style.display = "none";
+                elements.scanUserButton.textContent = "Scan User Barcode";
+                toggleButtonState(false, 'pinUpdate', true);
+                isScanning = false;
+            }).catch(err => {
+                showResult(elements.pinUpdateResult, `Stop error: ${err}`, "error");
+                toggleButtonState(false, 'pinUpdate', true);
+                isScanning = false;
+            });
+        }
+
+        // Handle Manual Barcode Entry
+        async function handleManualBarcode() {
+            const barcode = sanitizeInput(elements.userBarcode.value.trim());
+            if (!barcode) {
+                showResult(elements.pinUpdateResult, "Please enter a barcode.", "error");
+                return;
+            }
+            await fetchUserIdByBarcode(barcode);
+        }
+
+        // Fetch User ID by Barcode
+        async function fetchUserIdByBarcode(barcode) {
+            if (!isTokenValid()) return;
+
+            elements.pinUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/users?query=barcode==${encodeURIComponent(barcode)}`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.users && data.users.length > 0) {
+                        userId = data.users[0].id;
+                        showResult(elements.pinUpdateResult, "User ID retrieved successfully.", "success");
+                    } else {
+                        showResult(elements.pinUpdateResult, "No user found for this barcode.", "error");
+                        userId = null;
+                    }
+                } else {
+                    throw new Error("Failed to fetch user details.");
+                }
+            } catch (err) {
+                showResult(elements.pinUpdateResult, `Error fetching user details: ${err.message}`, "error");
+                userId = null;
+            } finally {
+                elements.pinUpdateLoading.style.display = "none";
+            }
+        }
+
+        // PIN Update
+        async function performPinUpdate() {
+            const newPin = elements.newPin.value.trim();
+            const confirmNewPin = elements.confirmNewPin.value.trim();
+
+            if (!isTokenValid()) {
+                showResult(elements.pinUpdateResult, "Session expired. Please sign in again.", "error");
+                return;
+            }
+
+            if (!userId) {
+                showResult(elements.pinUpdateResult, "Please scan or enter a valid user barcode.", "error");
+                return;
+            }
+
+            if (!newPin || !confirmNewPin) {
+                showResult(elements.pinUpdateResult, "Please complete all PIN fields.", "error");
+                return;
+            }
+
+            if (newPin !== confirmNewPin) {
+                showResult(elements.pinUpdateResult, "New PIN and confirmation do not match.", "error");
+                return;
+            }
+
+            if (newPin.length < 4 || newPin.length > 16) {
+                showResult(elements.pinUpdateResult, "New PIN must be between 4 and 16 characters.", "error");
+                return;
+            }
+
+            if (!/^[0-9a-zA-Z]+$/.test(newPin)) {
+                showResult(elements.pinUpdateResult, "PIN can only contain letters and numbers.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'pinUpdate');
+            elements.pinUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/patron-pin`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify({
+                        id: userId,
+                        pin: newPin
+                    })
+                });
+
+                if (response.ok) {
+                    showResult(elements.pinUpdateResult, "PIN updated successfully!", "success");
+                    resetPinForm();
+                } else {
+                    const error = await response.json();
+                    showResult(elements.pinUpdateResult, `PIN update failed: ${error.errors?.[0]?.message || 'Unknown error'}`, "error");
+                }
+            } catch (err) {
+                showResult(elements.pinUpdateResult, `PIN update error: ${err.message}`, "error");
+            } finally {
+                elements.pinUpdateLoading.style.display = "none";
+                toggleButtonState(false, 'pinUpdate');
+            }
+        }
+
+        // Reset PIN Form
+        function resetPinForm() {
+            elements.userBarcode.value = "";
+            elements.newPin.value = "";
+            elements.confirmNewPin.value = "";
+            userId = null;
+            if (isScanning) stopScanning();
+            showResult(elements.pinUpdateResult, "Form reset. Ready for new PIN update.", "info");
+        }
+
+        // Token Validation
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                resetSession("Session expired. Please sign in again.");
+                return false;
+            }
+            return true;
+        }
+
+        // Reset Session
+        function resetSession(message) {
+            okapiToken = null;
+            tokenExpiration = null;
+            userId = null;
+            showResult(elements.authResult, message, "error");
+            elements.authForm.style.display = "block";
+            elements.pinUpdateContainer.style.display = "none";
+            resetPinForm();
+        }
+
+        // Show Result
+        function showResult(element, message, type) {
+            element.textContent = message;
+            element.className = `status ${type}`;
+            element.style.opacity = "1";
+            if (message && type !== "info") {
+                setTimeout(() => {
+                    element.style.opacity = "0";
+                    setTimeout(() => {
+                        element.textContent = "";
+                        element.style.opacity = "1";
+                    }, 300);
+                }, 5000);
+            }
+        }
+
+        // Toggle Button State
+        function toggleButtonState(disable, formType, scanOnly = false) {
+            const buttons = formType === 'auth' ?
+                [elements.authButton] :
+                scanOnly ?
+                    [elements.scanUserButton] :
+                    [elements.updatePinButton, elements.resetPinButton, elements.scanUserButton];
+            
+            buttons.forEach(button => {
+                button.disabled = disable;
+            });
+        }
+
+        // Check Token Expiration
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                resetSession("Session expired. Please sign in again.");
+            }
+        }
+
+        // Save Endpoint
+        function saveEndpoint() {
+            localStorage.setItem('lastEndpoint', elements.endpointSelect.value);
+        }
+
+        // Load Endpoint
+        function loadEndpoint() {
+            const saved = localStorage.getItem('lastEndpoint');
+            if (saved && Array.from(elements.endpointSelect.options).some(opt => opt.value === saved)) {
+                elements.endpointSelect.value = saved;
+            }
+        }
+
+        // Fetch with Retry
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Input Sanitization
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
