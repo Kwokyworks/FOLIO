@@ -41,6 +41,7 @@
         .info { color: #2563eb; }
         .success { color: #15803d; }
         .failure { color: #b91c1c; }
+        .warning { color: #d97706; }
         .spinner {
             border: 2px solid #f3f4f6;
             border-top: 2px solid #3b82f6;
@@ -71,8 +72,9 @@
                 <label for="okapiUrl" class="text-gray-600 font-medium">OKAPI Endpoint:</label>
                 <div>
                     <select id="okapiUrl" class="w-full p-2 border rounded-md" onchange="toggleCustomUrl()" aria-label="Select OKAPI Endpoint">
-                        <option value="https://okapi-demo2.folio.ebsco.com" selected>Demo 2 (okapi-demo2)</option>
+                        <option value="https://okapi-demo2.folio.ebsco.com">Demo 2 (okapi-demo2)</option>
                         <option value="https://okapi-demo1.folio.ebsco.com">Demo 1 (okapi-demo1)</option>
+                        <option value="https://okapi-utarlibrary.folio.ebsco.com" selected>UTAR Library (okapi-utarlibrary)</option>
                         <option value="custom">Custom URL</option>
                     </select>
                     <input type="text" id="customOkapiUrl" class="w-full p-2 border rounded-md mt-2 hidden" placeholder="Enter custom OKAPI URL" aria-label="Custom OKAPI URL">
@@ -81,8 +83,9 @@
                 <label for="tenantId" class="text-gray-600 font-medium">Tenant ID:</label>
                 <div>
                     <select id="tenantId" class="w-full p-2 border rounded-md" onchange="toggleCustomTenant()" aria-label="Select Tenant ID">
-                        <option value="fs00001176" selected>fs00001176 (Demo 2)</option>
+                        <option value="fs00001176">fs00001176 (Demo 2)</option>
                         <option value="fs00001175">fs00001175 (Demo 1)</option>
+                        <option value="fs00001248" selected>fs00001248 (UTAR Library)</option>
                         <option value="custom">Custom Tenant ID</option>
                     </select>
                     <input type="text" id="customTenantId" class="w-full p-2 border rounded-md mt-2 hidden" placeholder="Enter custom tenant ID" aria-label="Custom Tenant ID">
@@ -93,6 +96,61 @@
 
                 <label for="password" class="text-gray-600 font-medium">Password:</label>
                 <input type="password" id="password" class="w-full p-2 border rounded-md" placeholder="Enter password" required aria-label="Password">
+
+                <label for="locationId" class="text-gray-600 font-medium">Location:</label>
+                <select id="locationId" class="w-full p-2 border rounded-md" disabled aria-label="Select Location">
+                    <option value="">Login to populate locations</option>
+                </select>
+
+                <label for="textTypeId" class="text-gray-600 font-medium">Text Instance Type:</label>
+                <select id="textTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Text Instance Type">
+                    <option value="">Login to populate instance types</option>
+                </select>
+
+                <label for="audioTypeId" class="text-gray-600 font-medium">Audio Instance Type:</label>
+                <select id="audioTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Audio Instance Type">
+                    <option value="">Login to populate instance types</option>
+                </select>
+
+                <label for="bookTypeId" class="text-gray-600 font-medium">Book Material Type:</label>
+                <select id="bookTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Book Material Type">
+                    <option value="">Login to populate material types</option>
+                </select>
+
+                <label for="audiobookTypeId" class="text-gray-600 font-medium">Audiobook Material Type:</label>
+                <select id="audiobookTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Audiobook Material Type">
+                    <option value="">Login to populate material types</option>
+                </select>
+
+                <label for="ebookTypeId" class="text-gray-600 font-medium">E-book Material Type:</label>
+                <select id="ebookTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select E-book Material Type">
+                    <option value="">Login to populate material types</option>
+                </select>
+
+                <label for="loanTypeId" class="text-gray-600 font-medium">Loan Type:</label>
+                <select id="loanTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Loan Type">
+                    <option value="">Login to populate loan types</option>
+                </select>
+
+                <label for="callNumberTypeId" class="text-gray-600 font-medium">Call Number Type:</label>
+                <select id="callNumberTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Call Number Type">
+                    <option value="">Login to populate call number types</option>
+                </select>
+
+                <label for="identifierTypeId" class="text-gray-600 font-medium">Identifier Type:</label>
+                <select id="identifierTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Identifier Type">
+                    <option value="">Login to populate identifier types</option>
+                </select>
+
+                <label for="contributorNameTypeId" class="text-gray-600 font-medium">Contributor Name Type:</label>
+                <select id="contributorNameTypeId" class="w-full p-2 border rounded-md" disabled aria-label="Select Contributor Name Type">
+                    <option value="">Login to populate contributor name types</option>
+                </select>
+
+                <label for="sourceId" class="text-gray-600 font-medium">Holdings Source:</label>
+                <select id="sourceId" class="w-full p-2 border rounded-md" disabled aria-label="Select Holdings Source">
+                    <option value="">Login to populate holdings sources</option>
+                </select>
 
                 <label for="csvUpload" class="text-gray-600 font-medium">Upload CSV:</label>
                 <input type="file" id="csvUpload" accept=".csv" class="w-full p-2 border rounded-md" aria-label="Upload CSV File">
@@ -132,20 +190,32 @@
     <script>
         // Dummy data for 10 records
         let dummyData = [
-            { part: 1, isbn: "9781234567890", physical: "300 pages ; 24 cm", carrier: "hardcover", barcode: "9876543210001", callNumber: "LC 12345678901234" },
-            { part: 2, isbn: "9781234567891", physical: "250 pages : illustrations ; 20 cm", carrier: "paperback", barcode: "9876543210002", callNumber: "LC 12345678901235" },
-            { part: 3, isbn: "9781234567892", physical: "320 pages ; 25 cm", carrier: "hardcover", barcode: "9876543210003", callNumber: "LC 12345678901236" },
-            { part: 4, isbn: "9781234567893", physical: "1 audio disc (8 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "9876543210004", callNumber: "LC 12345678901237" },
-            { part: 5, isbn: "9781234567894", physical: "1 audio disc (9 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "9876543210005", callNumber: "LC 12345678901238" },
-            { part: 6, isbn: "9781234567895", physical: "280 pages ; 23 cm", carrier: "hardcover", barcode: "9876543210006", callNumber: "LC 74345678901239" },
-            { part: 7, isbn: "9781234567896", physical: "1 online resource (300 pages) : digital", carrier: "e-book", barcode: "9876543210007", callNumber: "LC 12345678901240" },
-            { part: 8, isbn: "9781234567897", physical: "270 pages : illustrations ; 21 cm", carrier: "paperback", barcode: "9876543210008", callNumber: "LC 12345678901241" },
-            { part: 9, isbn: "9781234567898", physical: "1 online resource (310 pages) : digital", carrier: "e-book", barcode: "9876543210009", callNumber: "LC 12345678901242" },
-            { part: 10, isbn: "9781234567899", physical: "350 pages ; 24 cm", carrier: "hardcover", barcode: "9876543210010", callNumber: "LC 12345678901243" }
+            { part: 1, isbn: "9781234567890", physical: "300 pages ; 24 cm", carrier: "hardcover", barcode: "kwokybc1", callNumber: "LC 12345678901234" },
+            { part: 2, isbn: "9781234567891", physical: "250 pages : illustrations ; 20 cm", carrier: "paperback", barcode: "kwokybc2", callNumber: "LC 12345678901235" },
+            { part: 3, isbn: "9781234567892", physical: "320 pages ; 25 cm", carrier: "hardcover", barcode: "kwokybc3", callNumber: "LC 12345678901236" },
+            { part: 4, isbn: "9781234567893", physical: "1 audio disc (8 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "kwokybc4", callNumber: "LC 12345678901237" },
+            { part: 5, isbn: "9781234567894", physical: "1 audio disc (9 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "kwokybc5", callNumber: "LC 12345678901238" },
+            { part: 6, isbn: "9781234567895", physical: "280 pages ; 23 cm", carrier: "hardcover", barcode: "kwokybc6", callNumber: "LC 74345678901239" },
+            { part: 7, isbn: "9781234567896", physical: "1 online resource (300 pages) : digital", carrier: "e-book", barcode: "kwokybc7", callNumber: "LC 12345678901240" },
+            { part: 8, isbn: "9781234567897", physical: "270 pages : illustrations ; 21 cm", carrier: "paperback", barcode: "kwokybc8", callNumber: "LC 12345678901241" },
+            { part: 9, isbn: "9781234567898", physical: "1 online resource (310 pages) : digital", carrier: "e-book", barcode: "kwokybc9", callNumber: "LC 12345678901242" },
+            { part: 10, isbn: "9781234567899", physical: "350 pages ; 24 cm", carrier: "hardcover", barcode: "kwokybc10", callNumber: "LC 12345678901243" }
         ];
 
         let authToken = null;
-        let sourceId = null;
+        let folioConfig = {
+            mainLocation: null,
+            textType: null,
+            audioType: null,
+            bookType: null,
+            audiobookType: null,
+            ebookType: null,
+            isbnType: null,
+            personalNameType: null,
+            canCirculateType: null,
+            callNumberTypeId: null,
+            sourceId: null
+        };
 
         // Toggle custom OKAPI URL input visibility
         function toggleCustomUrl() {
@@ -192,7 +262,7 @@
                 const values = [
                     record.part,
                     `"${record.isbn}"`,
-                    `"${record.physical.replace(/"/g, '""')}"`, // Escape quotes
+                    `"${record.physical.replace(/"/g, '""')}"`,
                     record.carrier,
                     record.barcode,
                     `"${record.callNumber}"`
@@ -259,7 +329,6 @@
                 logMessage('failure', 'Failed to process CSV', [{ name: error.message }]);
             }
 
-            // Reset file input
             event.target.value = '';
         });
 
@@ -268,7 +337,9 @@
             const statusTable = document.getElementById('status');
             const row = document.createElement('tr');
             const timestamp = new Date().toLocaleTimeString();
-            const itemText = items.length > 0 ? items.map(i => i.name).join(', ') : 'None';
+            const itemText = Array.isArray(items) && items.length > 0
+                ? items.map(i => i.name ? `${i.name} (${i.id || 'no-id'})` : JSON.stringify(i)).join(', ')
+                : 'None';
             row.innerHTML = `
                 <td>${timestamp}</td>
                 <td class="${type} capitalize">${type}</td>
@@ -287,6 +358,195 @@
             document.getElementById('loginButton').disabled = loggedIn;
             document.getElementById('deleteButton').disabled = !loggedIn;
             document.getElementById('insertButton').disabled = !loggedIn;
+        }
+
+        // Populate dropdown with options
+        function populateDropdown(selectId, items, valueKey, labelKey) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '';
+            if (!Array.isArray(items) || items.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No options available';
+                select.appendChild(option);
+                select.disabled = true;
+                return;
+            }
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item[valueKey];
+                option.textContent = item[labelKey] + ` (${item[valueKey]})`;
+                select.appendChild(option);
+            });
+            select.disabled = false;
+        }
+
+        // Fetch configuration (all UUIDs)
+        async function fetchConfig(okapiUrl, tenantId, token) {
+            const headers = {
+                'x-okapi-tenant': tenantId,
+                'x-okapi-token': token,
+                'Accept': 'application/json'
+            };
+
+            const config = {
+                locations: [],
+                instanceTypes: [],
+                materialTypes: [],
+                loanTypes: [],
+                callNumberTypes: [],
+                identifierTypes: [],
+                contributorNameTypes: []
+            };
+
+            try {
+                // Fetch locations
+                try {
+                    const locationsResponse = await fetch(`${okapiUrl}/locations?limit=1000`, { headers });
+                    if (!locationsResponse.ok) {
+                        const errorText = await locationsResponse.text();
+                        throw new Error(`Failed to fetch locations: ${locationsResponse.status} ${errorText}`);
+                    }
+                    const locationsData = await locationsResponse.json();
+                    if (!Array.isArray(locationsData.locations)) {
+                        logMessage('failure', 'Invalid locations response', [{ name: 'Missing or invalid "locations" property' }]);
+                        throw new Error('Invalid locations response: Missing or invalid "locations" property');
+                    }
+                    config.locations = locationsData.locations;
+                    logMessage('info', 'Available locations', config.locations);
+                    if (!config.locations.length) throw new Error('No locations found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch locations', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch instance types
+                try {
+                    const instanceTypesResponse = await fetch(`${okapiUrl}/instance-types?limit=1000`, { headers });
+                    if (!instanceTypesResponse.ok) {
+                        const errorText = await instanceTypesResponse.text();
+                        throw new Error(`Failed to fetch instance types: ${instanceTypesResponse.status} ${errorText}`);
+                    }
+                    const instanceTypesData = await instanceTypesResponse.json();
+                    if (!Array.isArray(instanceTypesData.instanceTypes)) {
+                        logMessage('failure', 'Invalid instance types response', [{ name: 'Missing or invalid "instanceTypes" property' }]);
+                        throw new Error('Invalid instance types response: Missing or invalid "instanceTypes" property');
+                    }
+                    config.instanceTypes = instanceTypesData.instanceTypes;
+                    logMessage('info', 'Available instance types', config.instanceTypes);
+                    if (!config.instanceTypes.length) throw new Error('No instance types found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch instance types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch material types
+                try {
+                    const materialTypesResponse = await fetch(`${okapiUrl}/material-types?limit=1000`, { headers });
+                    if (!materialTypesResponse.ok) {
+                        const errorText = await materialTypesResponse.text();
+                        throw new Error(`Failed to fetch material types: ${materialTypesResponse.status} ${errorText}`);
+                    }
+                    const materialTypesData = await materialTypesResponse.json();
+                    if (!Array.isArray(materialTypesData.mtypes)) {
+                        logMessage('failure', 'Invalid material types response', [{ name: 'Missing or invalid "mtypes" property' }]);
+                        throw new Error('Invalid material types response: Missing or invalid "mtypes" property');
+                    }
+                    config.materialTypes = materialTypesData.mtypes;
+                    logMessage('info', 'Available material types', config.materialTypes);
+                    if (!config.materialTypes.length) throw new Error('No material types found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch material types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch loan types
+                try {
+                    const loanTypesResponse = await fetch(`${okapiUrl}/loan-types?limit=1000`, { headers });
+                    if (!loanTypesResponse.ok) {
+                        const errorText = await loanTypesResponse.text();
+                        throw new Error(`Failed to fetch loan types: ${loanTypesResponse.status} ${errorText}`);
+                    }
+                    const loanTypesData = await loanTypesResponse.json();
+                    const loanTypesKey = loanTypesData.loanTypes ? 'loanTypes' : 'loantypes';
+                    if (!Array.isArray(loanTypesData[loanTypesKey])) {
+                        logMessage('failure', 'Invalid loan types response', [{ name: `Missing or invalid "${loanTypesKey}" property` }]);
+                        throw new Error(`Invalid loan types response: Missing or invalid "${loanTypesKey}" property`);
+                    }
+                    config.loanTypes = loanTypesData[loanTypesKey];
+                    logMessage('info', `Available loan types (using "${loanTypesKey}" key)`, config.loanTypes);
+                    if (!config.loanTypes.length) {
+                        logMessage('warning', 'No loan types found in the tenant');
+                    }
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch loan types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch call number types
+                try {
+                    const callNumberTypesResponse = await fetch(`${okapiUrl}/call-number-types?limit=1000`, { headers });
+                    if (!callNumberTypesResponse.ok) {
+                        const errorText = await callNumberTypesResponse.text();
+                        throw new Error(`Failed to fetch call number types: ${callNumberTypesResponse.status} ${errorText}`);
+                    }
+                    const callNumberTypesData = await callNumberTypesResponse.json();
+                    if (!Array.isArray(callNumberTypesData.callNumberTypes)) {
+                        logMessage('failure', 'Invalid call number types response', [{ name: 'Missing or invalid "callNumberTypes" property' }]);
+                        throw new Error('Invalid call number types response: Missing or invalid "callNumberTypes" property');
+                    }
+                    config.callNumberTypes = callNumberTypesData.callNumberTypes;
+                    logMessage('info', 'Available call number types', config.callNumberTypes);
+                    if (!config.callNumberTypes.length) throw new Error('No call number types found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch call number types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch identifier types
+                try {
+                    const identifierTypesResponse = await fetch(`${okapiUrl}/identifier-types?limit=1000`, { headers });
+                    if (!identifierTypesResponse.ok) {
+                        const errorText = await identifierTypesResponse.text();
+                        throw new Error(`Failed to fetch identifier types: ${identifierTypesResponse.status} ${errorText}`);
+                    }
+                    const identifierTypesData = await identifierTypesResponse.json();
+                    if (!Array.isArray(identifierTypesData.identifierTypes)) {
+                        logMessage('failure', 'Invalid identifier types response', [{ name: 'Missing or invalid "identifierTypes" property' }]);
+                        throw new Error('Invalid identifier types response: Missing or invalid "identifierTypes" property');
+                    }
+                    config.identifierTypes = identifierTypesData.identifierTypes;
+                    logMessage('info', 'Available identifier types', config.identifierTypes);
+                    if (!config.identifierTypes.length) throw new Error('No identifier types found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch identifier types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                // Fetch contributor name types
+                try {
+                    const contributorNameTypesResponse = await fetch(`${okapiUrl}/contributor-name-types?limit=1000`, { headers });
+                    if (!contributorNameTypesResponse.ok) {
+                        const errorText = await contributorNameTypesResponse.text();
+                        throw new Error(`Failed to fetch contributor name types: ${contributorNameTypesResponse.status} ${errorText}`);
+                    }
+                    const contributorNameTypesData = await contributorNameTypesResponse.json();
+                    if (!Array.isArray(contributorNameTypesData.contributorNameTypes)) {
+                        logMessage('failure', 'Invalid contributor name types response', [{ name: 'Missing or invalid "contributorNameTypes" property' }]);
+                        throw new Error('Invalid contributor name types response: Missing or invalid "contributorNameTypes" property');
+                    }
+                    config.contributorNameTypes = contributorNameTypesData.contributorNameTypes;
+                    logMessage('info', 'Available contributor name types', config.contributorNameTypes);
+                    if (!config.contributorNameTypes.length) throw new Error('No contributor name types found in the tenant.');
+                } catch (error) {
+                    logMessage('failure', 'Failed to fetch contributor name types', [{ name: error.message }]);
+                    throw error;
+                }
+
+                return config;
+            } catch (error) {
+                throw new Error(`Error fetching configuration: ${error.message}`);
+            }
         }
 
         async function authenticate() {
@@ -338,6 +598,32 @@
                     'x-okapi-token': authToken,
                     'Accept': 'application/json'
                 };
+
+                // Fetch configuration
+                loadingDiv.innerHTML = '<span class="spinner"></span> Fetching configuration...';
+                let config;
+                try {
+                    config = await fetchConfig(OKAPI_URL, TENANT_ID, authToken);
+                } catch (error) {
+                    errorDiv.textContent = `Error fetching configuration: ${error.message}`;
+                    loadingDiv.innerHTML = '';
+                    authToken = null;
+                    return;
+                }
+
+                // Populate dropdowns
+                populateDropdown('locationId', config.locations, 'id', 'name');
+                populateDropdown('textTypeId', config.instanceTypes, 'id', 'name');
+                populateDropdown('audioTypeId', config.instanceTypes, 'id', 'name');
+                populateDropdown('bookTypeId', config.materialTypes, 'id', 'name');
+                populateDropdown('audiobookTypeId', config.materialTypes, 'id', 'name');
+                populateDropdown('ebookTypeId', config.materialTypes, 'id', 'name');
+                populateDropdown('loanTypeId', config.loanTypes, 'id', 'name');
+                populateDropdown('callNumberTypeId', config.callNumberTypes, 'id', 'name');
+                populateDropdown('identifierTypeId', config.identifierTypes, 'id', 'name');
+                populateDropdown('contributorNameTypeId', config.contributorNameTypes, 'id', 'name');
+
+                // Fetch holdings sources
                 loadingDiv.innerHTML = '<span class="spinner"></span> Fetching holdings sources...';
                 try {
                     const holdingsSourcesResponse = await fetch(`${OKAPI_URL}/holdings-sources?query=cql.allRecords=1%20sortby%20name&limit=2000`, { headers });
@@ -345,16 +631,16 @@
                         const errorText = await holdingsSourcesResponse.text();
                         throw new Error(`Failed to fetch holdings sources: ${holdingsSourcesResponse.status} ${errorText}`);
                     }
-                    const holdingsSources = (await holdingsSourcesResponse.json()).holdingsRecordsSources;
-                    logMessage('info', 'Available holdings sources', holdingsSources);
-                    const folioSource = holdingsSources.find(s => s.name.toLowerCase().includes('folio'))?.id;
-                    if (!folioSource) {
-                        throw new Error('No FOLIO holdings source found in response.');
+                    const holdingsSourcesData = await holdingsSourcesResponse.json();
+                    if (!Array.isArray(holdingsSourcesData.holdingsRecordsSources)) {
+                        logMessage('failure', 'Invalid holdings sources response', [{ name: 'Missing or invalid "holdingsRecordsSources" property' }]);
+                        throw new Error('Invalid holdings sources response: Missing or invalid "holdingsRecordsSources" property');
                     }
-                    sourceId = folioSource;
-                    logMessage('info', 'Selected FOLIO source ID', [{ name: sourceId }]);
-                } catch (err) {
-                    errorDiv.textContent = `Error fetching holdings sources: ${err.message}. Please contact tenant admin for the FOLIO source ID.`;
+                    const holdingsSources = holdingsSourcesData.holdingsRecordsSources;
+                    logMessage('info', 'Available holdings sources', holdingsSources);
+                    populateDropdown('sourceId', holdingsSources, 'id', 'name');
+                } catch (error) {
+                    errorDiv.textContent = `Error fetching holdings sources: ${error.message}. Please contact tenant admin for the FOLIO source ID.`;
                     loadingDiv.innerHTML = '';
                     authToken = null;
                     return;
@@ -414,8 +700,9 @@
                     const errorText = await instancesResponse.text();
                     throw new Error(`Failed to query instances: ${instancesResponse.status} ${errorText}`);
                 }
-                const instances = (await instancesResponse.json()).instances;
-                logMessage('info', 'Found existing instances', instances.map(i => ({ name: i.id })));
+                const instancesData = await instancesResponse.json();
+                const instances = Array.isArray(instancesData.instances) ? instancesData.instances : [];
+                logMessage('info', 'Found existing instances', instances);
 
                 for (const instance of instances) {
                     try {
@@ -427,8 +714,9 @@
                             const errorText = await holdingsResponse.text();
                             throw new Error(`Failed to query holdings for instance ${instance.id}: ${holdingsResponse.status} ${errorText}`);
                         }
-                        const holdings = (await holdingsResponse.json()).holdingsRecords;
-                        logMessage('info', `Found holdings for instance ${instance.id}`, holdings.map(h => ({ name: h.id })));
+                        const holdingsData = await holdingsResponse.json();
+                        const holdings = Array.isArray(holdingsData.holdingsRecords) ? holdingsData.holdingsRecords : [];
+                        logMessage('info', `Found holdings for instance ${instance.id}`, holdings);
 
                         for (const holding of holdings) {
                             try {
@@ -440,8 +728,9 @@
                                     const errorText = await itemsResponse.text();
                                     throw new Error(`Failed to query items for holdings ${holding.id}: ${itemsResponse.status} ${errorText}`);
                                 }
-                                const items = (await itemsResponse.json()).items;
-                                logMessage('info', `Found items for holdings ${holding.id}`, items.map(i => ({ name: i.id })));
+                                const itemsData = await itemsResponse.json();
+                                const items = Array.isArray(itemsData.items) ? itemsData.items : [];
+                                logMessage('info', `Found items for holdings ${holding.id}`, items);
 
                                 for (const item of items) {
                                     const deleteItemResponse = await fetch(`${OKAPI_URL}/item-storage/items/${item.id}`, {
@@ -492,7 +781,7 @@
         }
 
         async function insertSampleData() {
-            if (!authToken || !sourceId) {
+            if (!authToken) {
                 document.getElementById('error').textContent = 'Please login first.';
                 return;
             }
@@ -513,6 +802,28 @@
                 return;
             }
 
+            // Get selected UUIDs from dropdowns
+            const selectedConfig = {
+                mainLocation: document.getElementById('locationId').value,
+                textType: document.getElementById('textTypeId').value,
+                audioType: document.getElementById('audioTypeId').value,
+                bookType: document.getElementById('bookTypeId').value,
+                audiobookType: document.getElementById('audiobookTypeId').value,
+                ebookType: document.getElementById('ebookTypeId').value,
+                canCirculateType: document.getElementById('loanTypeId').value,
+                callNumberTypeId: document.getElementById('callNumberTypeId').value,
+                isbnType: document.getElementById('identifierTypeId').value,
+                personalNameType: document.getElementById('contributorNameTypeId').value,
+                sourceId: document.getElementById('sourceId').value
+            };
+
+            // Validate selections
+            if (!Object.values(selectedConfig).every(v => v)) {
+                errorDiv.textContent = 'Please select all required types from the dropdowns.';
+                loadingDiv.innerHTML = '';
+                return;
+            }
+
             const headers = {
                 'x-okapi-tenant': TENANT_ID,
                 'x-okapi-token': authToken,
@@ -520,29 +831,18 @@
                 'Content-Type': 'application/json'
             };
 
-            const textType = '6312d172-f0cf-40f6-b27d-9fa8feaf332f';
-            const audioType = 'e5136fa2-1f19-4581-b005-6e007a940ca8';
-            const bookType = '13493ed9-900c-4db2-8646-4798bd8ac213';
-            const audiobookType = '991e9cad-6318-47f5-9726-dce7053e6a6b';
-            const ebookType = '9da6eee1-5000-4274-9099-3dd328638672';
-            const mainLocation = '7e9aa6d9-c57f-44cc-b934-4c8a7d561c39';
-            const isbnType = 'fcca2643-406a-482a-b760-7a7f8aec640e';
-            const personalNameType = '2b94c631-fca9-4892-a730-03ee529ffe2a';
-            const canCirculateType = 'a1dc1ce3-d56f-4d8a-b498-d5d674ccc845';
-            const callNumberTypeId = '95467209-6d7b-468b-94df-0f5d7ad2747d';
-
             const selectedUUIDs = [
-                { name: `textType: ${textType}` },
-                { name: `audioType: ${audioType}` },
-                { name: `bookType: ${bookType}` },
-                { name: `audiobookType: ${audiobookType}` },
-                { name: `ebookType: ${ebookType}` },
-                { name: `mainLocation: ${mainLocation}` },
-                { name: `isbnType: ${isbnType}` },
-                { name: `personalNameType: ${personalNameType}` },
-                { name: `canCirculateType: ${canCirculateType}` },
-                { name: `callNumberTypeId: ${callNumberTypeId}` },
-                { name: `sourceId: ${sourceId}` }
+                { name: `mainLocation: ${selectedConfig.mainLocation}` },
+                { name: `textType: ${selectedConfig.textType}` },
+                { name: `audioType: ${selectedConfig.audioType}` },
+                { name: `bookType: ${selectedConfig.bookType}` },
+                { name: `audiobookType: ${selectedConfig.audiobookType}` },
+                { name: `ebookType: ${selectedConfig.ebookType}` },
+                { name: `canCirculateType: ${selectedConfig.canCirculateType}` },
+                { name: `callNumberTypeId: ${selectedConfig.callNumberTypeId}` },
+                { name: `isbnType: ${selectedConfig.isbnType}` },
+                { name: `personalNameType: ${selectedConfig.personalNameType}` },
+                { name: `sourceId: ${selectedConfig.sourceId}` }
             ];
             logMessage('info', 'Selected UUIDs', selectedUUIDs);
 
@@ -552,12 +852,12 @@
                         id: crypto.randomUUID(),
                         title: `FOLIO adventures part ${record.part}`,
                         source: 'Manual',
-                        instanceTypeId: record.carrier === 'audiobook' ? audioType : textType,
-                        identifiers: [{ identifierTypeId: isbnType, value: record.isbn }],
-                        contributors: [{ contributorNameTypeId: personalNameType, name: 'Smith, John' }],
+                        instanceTypeId: record.carrier === 'audiobook' ? selectedConfig.audioType : selectedConfig.textType,
+                        identifiers: [{ identifierTypeId: selectedConfig.isbnType, value: record.isbn }],
+                        contributors: [{ contributorNameTypeId: selectedConfig.personalNameType, name: 'Smith, John' }],
                         publication: [{ publisher: 'FOLIO Press', place: 'New York', dateOfPublication: '2025' }],
                         physicalDescriptions: [record.physical],
-                        materialTypeId: record.carrier === 'audiobook' ? audiobookType : record.carrier === 'e-book' ? ebookType : bookType
+                        materialTypeId: record.carrier === 'audiobook' ? selectedConfig.audiobookType : record.carrier === 'e-book' ? selectedConfig.ebookType : selectedConfig.bookType
                     };
                     const instanceResponse = await fetch(`${OKAPI_URL}/inventory/instances`, {
                         method: 'POST',
@@ -565,18 +865,18 @@
                         body: JSON.stringify(instance)
                     });
                     if (!instanceResponse.ok) {
-                        const errorData = await instanceResponse.json();
-                        throw new Error(`Failed to create instance: ${instanceResponse.statusText} - ${JSON.stringify(errorData)}`);
+                        const errorData = await instanceResponse.json().catch(() => ({}));
+                        throw new Error(`Failed to create instance: ${instanceResponse.status} ${instanceResponse.statusText} - ${JSON.stringify(errorData)}`);
                     }
                     logMessage('info', `Created instance for part ${record.part}`, [{ name: instance.id }]);
 
                     const holdings = {
                         id: crypto.randomUUID(),
                         instanceId: instance.id,
-                        permanentLocationId: mainLocation,
+                        permanentLocationId: selectedConfig.mainLocation,
                         callNumber: record.callNumber,
-                        callNumberTypeId: callNumberTypeId,
-                        sourceId: sourceId
+                        callNumberTypeId: selectedConfig.callNumberTypeId,
+                        sourceId: selectedConfig.sourceId
                     };
                     const holdingsResponse = await fetch(`${OKAPI_URL}/holdings-storage/holdings`, {
                         method: 'POST',
@@ -584,8 +884,8 @@
                         body: JSON.stringify(holdings)
                     });
                     if (!holdingsResponse.ok) {
-                        const errorData = await holdingsResponse.json();
-                        throw new Error(`Failed to create holdings: ${holdingsResponse.statusText} - ${JSON.stringify(errorData)}`);
+                        const errorData = await holdingsResponse.json().catch(() => ({}));
+                        throw new Error(`Failed to create holdings: ${holdingsResponse.status} ${holdingsResponse.statusText} - ${JSON.stringify(errorData)}`);
                     }
                     logMessage('info', `Created holdings for part ${record.part}`, [{ name: holdings.id }]);
 
@@ -595,7 +895,7 @@
                         holdingsRecordId: holdings.id,
                         barcode: record.barcode,
                         materialTypeId: instance.materialTypeId,
-                        permanentLoanTypeId: canCirculateType,
+                        permanentLoanTypeId: selectedConfig.canCirculateType,
                         status: { name: 'Available' }
                     };
                     const itemResponse = await fetch(`${OKAPI_URL}/item-storage/items`, {
@@ -604,8 +904,8 @@
                         body: JSON.stringify(item)
                     });
                     if (!itemResponse.ok) {
-                        const errorData = await itemResponse.json();
-                        throw new Error(`Failed to create item: ${itemResponse.statusText} - ${JSON.stringify(errorData)}`);
+                        const errorData = await itemResponse.json().catch(() => ({}));
+                        throw new Error(`Failed to create item: ${itemResponse.status} ${itemResponse.statusText} - ${JSON.stringify(errorData)}`);
                     }
                     logMessage('info', `Created item for part ${record.part}`, [{ name: item.id }]);
 
