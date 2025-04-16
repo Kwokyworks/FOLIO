@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Dummy Data Import</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+        .log-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .log-table th, .log-table td {
+            padding: 12px;
+            text-align: left;
+        }
+        .log-table th {
+            background-color: #f3f4f6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .log-table tr {
+            transition: background-color 0.2s;
+        }
+        .log-table tr:hover {
+            background-color: #f9fafb;
+        }
+        .info { color: #2563eb; }
+        .success { color: #15803d; }
+        .failure { color: #b91c1c; }
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        button:focus, select:focus, input:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">FOLIO Dummy Data Import</h1>
+        
+        <!-- Form Section -->
+        <section class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Configuration</h2>
+            <div class="form-grid">
+                <label for="okapiUrl" class="text-gray-600 font-medium">OKAPI Endpoint:</label>
+                <div>
+                    <select id="okapiUrl" class="w-full p-2 border rounded-md" onchange="toggleCustomUrl()" aria-label="Select OKAPI Endpoint">
+                        <option value="https://okapi-demo2.folio.ebsco.com" selected>Demo 2 (okapi-demo2)</option>
+                        <option value="https://okapi-demo1.folio.ebsco.com">Demo 1 (okapi-demo1)</option>
+                        <option value="custom">Custom URL</option>
+                    </select>
+                    <input type="text" id="customOkapiUrl" class="w-full p-2 border rounded-md mt-2 hidden" placeholder="Enter custom OKAPI URL" aria-label="Custom OKAPI URL">
+                </div>
+
+                <label for="tenantId" class="text-gray-600 font-medium">Tenant ID:</label>
+                <div>
+                    <select id="tenantId" class="w-full p-2 border rounded-md" onchange="toggleCustomTenant()" aria-label="Select Tenant ID">
+                        <option value="fs00001176" selected>fs00001176 (Demo 2)</option>
+                        <option value="fs00001175">fs00001175 (Demo 1)</option>
+                        <option value="custom">Custom Tenant ID</option>
+                    </select>
+                    <input type="text" id="customTenantId" class="w-full p-2 border rounded-md mt-2 hidden" placeholder="Enter custom tenant ID" aria-label="Custom Tenant ID">
+                </div>
+
+                <label for="username" class="text-gray-600 font-medium">Username:</label>
+                <input type="text" id="username" class="w-full p-2 border rounded-md" placeholder="Enter username" required aria-label="Username">
+
+                <label for="password" class="text-gray-600 font-medium">Password:</label>
+                <input type="password" id="password" class="w-full p-2 border rounded-md" placeholder="Enter password" required aria-label="Password">
+
+                <label for="csvUpload" class="text-gray-600 font-medium">Upload CSV:</label>
+                <input type="file" id="csvUpload" accept=".csv" class="w-full p-2 border rounded-md" aria-label="Upload CSV File">
+            </div>
+
+            <div class="mt-6 flex space-x-4">
+                <button id="loginButton" onclick="authenticate()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition disabled:bg-gray-400" aria-label="Login">Login</button>
+                <button id="deleteButton" onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition disabled:bg-gray-400" disabled aria-label="Delete Sample Data">Delete Sample Data</button>
+                <button id="insertButton" onclick="insertSampleData()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition disabled:bg-gray-400" disabled aria-label="Insert Sample Data">Insert Sample Data</button>
+                <button onclick="downloadCsv()" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition" aria-label="Download CSV">Download CSV</button>
+            </div>
+        </section>
+
+        <!-- Status and Logs Section -->
+        <section>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-700">Logs</h2>
+                <button onclick="clearLogs()" class="text-blue-600 hover:underline" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div id="error" class="text-red-600 mb-4" role="alert"></div>
+            <div id="loading" class="mb-4 flex items-center space-x-2" aria-live="polite"></div>
+            <div class="log-table">
+                <table class="w-full text-sm text-gray-700">
+                    <thead>
+                        <tr>
+                            <th class="w-1/6">Timestamp</th>
+                            <th class="w-1/6">Type</th>
+                            <th class="w-2/3">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Dummy data for 10 records
+        let dummyData = [
+            { part: 1, isbn: "9781234567890", physical: "300 pages ; 24 cm", carrier: "hardcover", barcode: "9876543210001", callNumber: "LC 12345678901234" },
+            { part: 2, isbn: "9781234567891", physical: "250 pages : illustrations ; 20 cm", carrier: "paperback", barcode: "9876543210002", callNumber: "LC 12345678901235" },
+            { part: 3, isbn: "9781234567892", physical: "320 pages ; 25 cm", carrier: "hardcover", barcode: "9876543210003", callNumber: "LC 12345678901236" },
+            { part: 4, isbn: "9781234567893", physical: "1 audio disc (8 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "9876543210004", callNumber: "LC 12345678901237" },
+            { part: 5, isbn: "9781234567894", physical: "1 audio disc (9 hr.) ; 4 3/4 in.", carrier: "audiobook", barcode: "9876543210005", callNumber: "LC 12345678901238" },
+            { part: 6, isbn: "9781234567895", physical: "280 pages ; 23 cm", carrier: "hardcover", barcode: "9876543210006", callNumber: "LC 74345678901239" },
+            { part: 7, isbn: "9781234567896", physical: "1 online resource (300 pages) : digital", carrier: "e-book", barcode: "9876543210007", callNumber: "LC 12345678901240" },
+            { part: 8, isbn: "9781234567897", physical: "270 pages : illustrations ; 21 cm", carrier: "paperback", barcode: "9876543210008", callNumber: "LC 12345678901241" },
+            { part: 9, isbn: "9781234567898", physical: "1 online resource (310 pages) : digital", carrier: "e-book", barcode: "9876543210009", callNumber: "LC 12345678901242" },
+            { part: 10, isbn: "9781234567899", physical: "350 pages ; 24 cm", carrier: "hardcover", barcode: "9876543210010", callNumber: "LC 12345678901243" }
+        ];
+
+        let authToken = null;
+        let sourceId = null;
+
+        // Toggle custom OKAPI URL input visibility
+        function toggleCustomUrl() {
+            const okapiSelect = document.getElementById('okapiUrl');
+            const customUrlInput = document.getElementById('customOkapiUrl');
+            customUrlInput.classList.toggle('hidden', okapiSelect.value !== 'custom');
+        }
+
+        // Toggle custom tenant ID input visibility
+        function toggleCustomTenant() {
+            const tenantSelect = document.getElementById('tenantId');
+            const customTenantInput = document.getElementById('customTenantId');
+            customTenantInput.classList.toggle('hidden', tenantSelect.value !== 'custom');
+        }
+
+        // Get OKAPI URL from input
+        function getOkapiUrl() {
+            const okapiSelect = document.getElementById('okapiUrl');
+            if (okapiSelect.value === 'custom') {
+                const customUrl = document.getElementById('customOkapiUrl').value.trim();
+                if (!customUrl) throw new Error('Custom OKAPI URL is required.');
+                if (!customUrl.match(/^https?:\/\/.+/)) throw new Error('Invalid OKAPI URL format.');
+                return customUrl;
+            }
+            return okapiSelect.value;
+        }
+
+        // Get Tenant ID from input
+        function getTenantId() {
+            const tenantSelect = document.getElementById('tenantId');
+            if (tenantSelect.value === 'custom') {
+                const customTenant = document.getElementById('customTenantId').value.trim();
+                if (!customTenant) throw new Error('Custom Tenant ID is required.');
+                return customTenant;
+            }
+            return tenantSelect.value;
+        }
+
+        // Download dummy data as CSV
+        function downloadCsv() {
+            const headers = ['part', 'isbn', 'physical', 'carrier', 'barcode', 'callNumber'];
+            const csvRows = [headers.join(',')];
+            dummyData.forEach(record => {
+                const values = [
+                    record.part,
+                    `"${record.isbn}"`,
+                    `"${record.physical.replace(/"/g, '""')}"`, // Escape quotes
+                    record.carrier,
+                    record.barcode,
+                    `"${record.callNumber}"`
+                ];
+                csvRows.push(values.join(','));
+            });
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'folio_dummy_data.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            logMessage('success', 'Downloaded dummy data as CSV');
+        }
+
+        // Handle CSV upload
+        document.getElementById('csvUpload').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            errorDiv.textContent = '';
+            loadingDiv.innerHTML = '<span class="spinner"></span> Processing CSV file...';
+
+            try {
+                const text = await file.text();
+                const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+                if (rows.length < 1) throw new Error('CSV file is empty.');
+
+                const headers = rows[0].split(',').map(h => h.trim());
+                const expectedHeaders = ['part', 'isbn', 'physical', 'carrier', 'barcode', 'callNumber'];
+                if (!expectedHeaders.every((h, i) => h === headers[i])) {
+                    throw new Error('Invalid CSV headers. Expected: ' + expectedHeaders.join(', '));
+                }
+
+                const newData = [];
+                for (let i = 1; i < rows.length; i++) {
+                    const values = rows[i].split(',').map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                    if (values.length !== expectedHeaders.length) {
+                        throw new Error(`Invalid row ${i + 1}: Expected ${expectedHeaders.length} columns.`);
+                    }
+                    const part = parseInt(values[0]);
+                    if (isNaN(part)) throw new Error(`Invalid part number in row ${i + 1}.`);
+                    newData.push({
+                        part,
+                        isbn: values[1],
+                        physical: values[2],
+                        carrier: values[3],
+                        barcode: values[4],
+                        callNumber: values[5]
+                    });
+                }
+
+                if (newData.length === 0) throw new Error('No valid data rows found in CSV.');
+                dummyData = newData;
+                loadingDiv.innerHTML = '';
+                logMessage('success', `Uploaded CSV with ${newData.length} records`, newData.map(d => ({ name: `Part ${d.part}` })));
+            } catch (error) {
+                errorDiv.textContent = `Error processing CSV: ${error.message}`;
+                loadingDiv.innerHTML = '';
+                logMessage('failure', 'Failed to process CSV', [{ name: error.message }]);
+            }
+
+            // Reset file input
+            event.target.value = '';
+        });
+
+        // Log message to table
+        function logMessage(type, message, items = []) {
+            const statusTable = document.getElementById('status');
+            const row = document.createElement('tr');
+            const timestamp = new Date().toLocaleTimeString();
+            const itemText = items.length > 0 ? items.map(i => i.name).join(', ') : 'None';
+            row.innerHTML = `
+                <td>${timestamp}</td>
+                <td class="${type} capitalize">${type}</td>
+                <td>${message}: ${itemText}</td>
+            `;
+            statusTable.prepend(row);
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('status').innerHTML = '';
+            logMessage('info', 'Logs cleared');
+        }
+
+        function updateButtonStates(loggedIn) {
+            document.getElementById('loginButton').disabled = loggedIn;
+            document.getElementById('deleteButton').disabled = !loggedIn;
+            document.getElementById('insertButton').disabled = !loggedIn;
+        }
+
+        async function authenticate() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+
+            errorDiv.textContent = '';
+            loadingDiv.innerHTML = '<span class="spinner"></span> Authenticating...';
+
+            if (!username || !password) {
+                errorDiv.textContent = 'Please enter both username and password.';
+                loadingDiv.innerHTML = '';
+                return;
+            }
+
+            let OKAPI_URL, TENANT_ID;
+            try {
+                OKAPI_URL = getOkapiUrl();
+                TENANT_ID = getTenantId();
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                loadingDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const loginResponse = await fetch(`${OKAPI_URL}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-okapi-tenant': TENANT_ID
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (loginResponse.status !== 201) {
+                    throw new Error(`Authentication failed: ${loginResponse.status} ${loginResponse.statusText}`);
+                }
+
+                authToken = loginResponse.headers.get('x-okapi-token');
+                if (!authToken) {
+                    throw new Error('No x-okapi-token received in response.');
+                }
+
+                const headers = {
+                    'x-okapi-tenant': TENANT_ID,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json'
+                };
+                loadingDiv.innerHTML = '<span class="spinner"></span> Fetching holdings sources...';
+                try {
+                    const holdingsSourcesResponse = await fetch(`${OKAPI_URL}/holdings-sources?query=cql.allRecords=1%20sortby%20name&limit=2000`, { headers });
+                    if (!holdingsSourcesResponse.ok) {
+                        const errorText = await holdingsSourcesResponse.text();
+                        throw new Error(`Failed to fetch holdings sources: ${holdingsSourcesResponse.status} ${errorText}`);
+                    }
+                    const holdingsSources = (await holdingsSourcesResponse.json()).holdingsRecordsSources;
+                    logMessage('info', 'Available holdings sources', holdingsSources);
+                    const folioSource = holdingsSources.find(s => s.name.toLowerCase().includes('folio'))?.id;
+                    if (!folioSource) {
+                        throw new Error('No FOLIO holdings source found in response.');
+                    }
+                    sourceId = folioSource;
+                    logMessage('info', 'Selected FOLIO source ID', [{ name: sourceId }]);
+                } catch (err) {
+                    errorDiv.textContent = `Error fetching holdings sources: ${err.message}. Please contact tenant admin for the FOLIO source ID.`;
+                    loadingDiv.innerHTML = '';
+                    authToken = null;
+                    return;
+                }
+
+                updateButtonStates(true);
+                loadingDiv.innerHTML = '';
+                logMessage('success', 'Successfully logged in');
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                loadingDiv.innerHTML = '';
+                authToken = null;
+                updateButtonStates(false);
+            }
+        }
+
+        function confirmDelete() {
+            if (confirm('Are you sure you want to delete all sample data? This action cannot be undone.')) {
+                deleteSampleData();
+            }
+        }
+
+        async function deleteSampleData() {
+            if (!authToken) {
+                document.getElementById('error').textContent = 'Please login first.';
+                return;
+            }
+
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+
+            errorDiv.textContent = '';
+            loadingDiv.innerHTML = '<span class="spinner"></span> Deleting existing records...';
+
+            let OKAPI_URL, TENANT_ID;
+            try {
+                OKAPI_URL = getOkapiUrl();
+                TENANT_ID = getTenantId();
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                loadingDiv.innerHTML = '';
+                return;
+            }
+
+            const headers = {
+                'x-okapi-tenant': TENANT_ID,
+                'x-okapi-token': authToken,
+                'Accept': 'text/plain'
+            };
+
+            try {
+                const query = encodeURIComponent('title=="FOLIO adventures*"');
+                const instancesResponse = await fetch(`${OKAPI_URL}/inventory/instances?query=${query}&limit=1000`, {
+                    headers: { ...headers, 'Accept': 'application/json' }
+                });
+                if (!instancesResponse.ok) {
+                    const errorText = await instancesResponse.text();
+                    throw new Error(`Failed to query instances: ${instancesResponse.status} ${errorText}`);
+                }
+                const instances = (await instancesResponse.json()).instances;
+                logMessage('info', 'Found existing instances', instances.map(i => ({ name: i.id })));
+
+                for (const instance of instances) {
+                    try {
+                        const holdingsQuery = encodeURIComponent(`instanceId==${instance.id}`);
+                        const holdingsResponse = await fetch(`${OKAPI_URL}/holdings-storage/holdings?query=${holdingsQuery}&limit=1000`, {
+                            headers: { ...headers, 'Accept': 'application/json' }
+                        });
+                        if (!holdingsResponse.ok) {
+                            const errorText = await holdingsResponse.text();
+                            throw new Error(`Failed to query holdings for instance ${instance.id}: ${holdingsResponse.status} ${errorText}`);
+                        }
+                        const holdings = (await holdingsResponse.json()).holdingsRecords;
+                        logMessage('info', `Found holdings for instance ${instance.id}`, holdings.map(h => ({ name: h.id })));
+
+                        for (const holding of holdings) {
+                            try {
+                                const itemsQuery = encodeURIComponent(`holdingsRecordId==${holding.id}`);
+                                const itemsResponse = await fetch(`${OKAPI_URL}/item-storage/items?query=${itemsQuery}&limit=1000`, {
+                                    headers: { ...headers, 'Accept': 'application/json' }
+                                });
+                                if (!itemsResponse.ok) {
+                                    const errorText = await itemsResponse.text();
+                                    throw new Error(`Failed to query items for holdings ${holding.id}: ${itemsResponse.status} ${errorText}`);
+                                }
+                                const items = (await itemsResponse.json()).items;
+                                logMessage('info', `Found items for holdings ${holding.id}`, items.map(i => ({ name: i.id })));
+
+                                for (const item of items) {
+                                    const deleteItemResponse = await fetch(`${OKAPI_URL}/item-storage/items/${item.id}`, {
+                                        method: 'DELETE',
+                                        headers
+                                    });
+                                    if (!deleteItemResponse.ok) {
+                                        const errorText = await deleteItemResponse.text();
+                                        throw new Error(`Failed to delete item ${item.id}: ${deleteItemResponse.status} ${errorText}`);
+                                    }
+                                    logMessage('info', `Deleted item`, [{ name: item.id }]);
+                                }
+
+                                const deleteHoldingResponse = await fetch(`${OKAPI_URL}/holdings-storage/holdings/${holding.id}`, {
+                                    method: 'DELETE',
+                                    headers
+                                });
+                                if (!deleteHoldingResponse.ok) {
+                                    const errorText = await deleteHoldingResponse.text();
+                                    throw new Error(`Failed to delete holdings ${holding.id}: ${deleteHoldingResponse.status} ${errorText}`);
+                                }
+                                logMessage('info', `Deleted holdings`, [{ name: holding.id }]);
+                            } catch (err) {
+                                logMessage('failure', `Error deleting holdings ${holding.id}`, [{ name: err.message }]);
+                            }
+                        }
+
+                        const deleteInstanceResponse = await fetch(`${OKAPI_URL}/inventory/instances/${instance.id}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+                        if (!deleteInstanceResponse.ok) {
+                            const errorText = await deleteInstanceResponse.text();
+                            throw new Error(`Failed to delete instance ${instance.id}: ${deleteInstanceResponse.status} ${errorText}`);
+                        }
+                        logMessage('info', `Deleted instance`, [{ name: instance.id }]);
+                    } catch (err) {
+                        logMessage('failure', `Error deleting instance ${instance.id}`, [{ name: err.message }]);
+                    }
+                }
+
+                loadingDiv.innerHTML = '';
+                logMessage('success', 'Successfully deleted sample data');
+            } catch (err) {
+                errorDiv.textContent = `Error during deletion: ${err.message}.`;
+                loadingDiv.innerHTML = '';
+            }
+        }
+
+        async function insertSampleData() {
+            if (!authToken || !sourceId) {
+                document.getElementById('error').textContent = 'Please login first.';
+                return;
+            }
+
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+
+            errorDiv.textContent = '';
+            loadingDiv.innerHTML = '<span class="spinner"></span> Inserting dummy records...';
+
+            let OKAPI_URL, TENANT_ID;
+            try {
+                OKAPI_URL = getOkapiUrl();
+                TENANT_ID = getTenantId();
+            } catch (error) {
+                errorDiv.textContent = `Error: ${error.message}`;
+                loadingDiv.innerHTML = '';
+                return;
+            }
+
+            const headers = {
+                'x-okapi-tenant': TENANT_ID,
+                'x-okapi-token': authToken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            };
+
+            const textType = '6312d172-f0cf-40f6-b27d-9fa8feaf332f';
+            const audioType = 'e5136fa2-1f19-4581-b005-6e007a940ca8';
+            const bookType = '13493ed9-900c-4db2-8646-4798bd8ac213';
+            const audiobookType = '991e9cad-6318-47f5-9726-dce7053e6a6b';
+            const ebookType = '9da6eee1-5000-4274-9099-3dd328638672';
+            const mainLocation = '7e9aa6d9-c57f-44cc-b934-4c8a7d561c39';
+            const isbnType = 'fcca2643-406a-482a-b760-7a7f8aec640e';
+            const personalNameType = '2b94c631-fca9-4892-a730-03ee529ffe2a';
+            const canCirculateType = 'a1dc1ce3-d56f-4d8a-b498-d5d674ccc845';
+            const callNumberTypeId = '95467209-6d7b-468b-94df-0f5d7ad2747d';
+
+            const selectedUUIDs = [
+                { name: `textType: ${textType}` },
+                { name: `audioType: ${audioType}` },
+                { name: `bookType: ${bookType}` },
+                { name: `audiobookType: ${audiobookType}` },
+                { name: `ebookType: ${ebookType}` },
+                { name: `mainLocation: ${mainLocation}` },
+                { name: `isbnType: ${isbnType}` },
+                { name: `personalNameType: ${personalNameType}` },
+                { name: `canCirculateType: ${canCirculateType}` },
+                { name: `callNumberTypeId: ${callNumberTypeId}` },
+                { name: `sourceId: ${sourceId}` }
+            ];
+            logMessage('info', 'Selected UUIDs', selectedUUIDs);
+
+            for (const record of dummyData) {
+                try {
+                    const instance = {
+                        id: crypto.randomUUID(),
+                        title: `FOLIO adventures part ${record.part}`,
+                        source: 'Manual',
+                        instanceTypeId: record.carrier === 'audiobook' ? audioType : textType,
+                        identifiers: [{ identifierTypeId: isbnType, value: record.isbn }],
+                        contributors: [{ contributorNameTypeId: personalNameType, name: 'Smith, John' }],
+                        publication: [{ publisher: 'FOLIO Press', place: 'New York', dateOfPublication: '2025' }],
+                        physicalDescriptions: [record.physical],
+                        materialTypeId: record.carrier === 'audiobook' ? audiobookType : record.carrier === 'e-book' ? ebookType : bookType
+                    };
+                    const instanceResponse = await fetch(`${OKAPI_URL}/inventory/instances`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(instance)
+                    });
+                    if (!instanceResponse.ok) {
+                        const errorData = await instanceResponse.json();
+                        throw new Error(`Failed to create instance: ${instanceResponse.statusText} - ${JSON.stringify(errorData)}`);
+                    }
+                    logMessage('info', `Created instance for part ${record.part}`, [{ name: instance.id }]);
+
+                    const holdings = {
+                        id: crypto.randomUUID(),
+                        instanceId: instance.id,
+                        permanentLocationId: mainLocation,
+                        callNumber: record.callNumber,
+                        callNumberTypeId: callNumberTypeId,
+                        sourceId: sourceId
+                    };
+                    const holdingsResponse = await fetch(`${OKAPI_URL}/holdings-storage/holdings`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(holdings)
+                    });
+                    if (!holdingsResponse.ok) {
+                        const errorData = await holdingsResponse.json();
+                        throw new Error(`Failed to create holdings: ${holdingsResponse.statusText} - ${JSON.stringify(errorData)}`);
+                    }
+                    logMessage('info', `Created holdings for part ${record.part}`, [{ name: holdings.id }]);
+
+                    const item = {
+                        id: crypto.randomUUID(),
+                        hrid: `item_${record.barcode}`,
+                        holdingsRecordId: holdings.id,
+                        barcode: record.barcode,
+                        materialTypeId: instance.materialTypeId,
+                        permanentLoanTypeId: canCirculateType,
+                        status: { name: 'Available' }
+                    };
+                    const itemResponse = await fetch(`${OKAPI_URL}/item-storage/items`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(item)
+                    });
+                    if (!itemResponse.ok) {
+                        const errorData = await itemResponse.json();
+                        throw new Error(`Failed to create item: ${itemResponse.statusText} - ${JSON.stringify(errorData)}`);
+                    }
+                    logMessage('info', `Created item for part ${record.part}`, [{ name: item.id }]);
+
+                    logMessage('success', `Successfully created record for part ${record.part}`);
+                } catch (error) {
+                    logMessage('failure', `Failed to create record for part ${record.part}`, [{ name: error.message }]);
+                }
+            }
+
+            loadingDiv.innerHTML = '';
+        }
+    </script>
+</body>
+</html>

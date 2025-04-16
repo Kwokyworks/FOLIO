@@ -1,0 +1,11 @@
+part,isbn,physical,carrier,barcode,callNumber
+1,9781234567890,300 pages ; 24 cm,hardcover,kwokydemo1,LC 12345678901234
+2,9781234567891,250 pages : illustrations ; 20 cm,paperback,kwokydemo2,LC 12345678901235
+3,9781234567892,320 pages ; 25 cm,hardcover,kwokydemo3,LC 12345678901236
+4,9781234567893,1 audio disc (8 hr.) ; 4 3/4 in.,audiobook,kwokydemo4,LC 12345678901237
+5,9781234567894,1 audio disc (9 hr.) ; 4 3/4 in.,audiobook,kwokydemo5,LC 12345678901238
+6,9781234567895,280 pages ; 23 cm,hardcover,kwokydemo6,LC 74345678901239
+7,9781234567896,1 online resource (300 pages) : digital,e-book,kwokydemo7,LC 12345678901240
+8,9781234567897,270 pages : illustrations ; 21 cm,paperback,kwokydemo8,LC 12345678901241
+9,9781234567898,1 online resource (310 pages) : digital,e-book,kwokydemo9,LC 12345678901242
+10,9781234567899,350 pages ; 24 cm,hardcover,kwokydemo10,LC 12345678901243
