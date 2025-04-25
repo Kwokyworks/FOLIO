@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View and Pay Fines</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .fines-list {
+      margin-top: 20px;
+    }
+    .fine-item {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .fine-item h3 {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>View and Pay Fines</h1>
+
+    <!-- Form to fetch fines for a user -->
+    <div>
+      <label for="externalSystemId">External System ID:</label>
+      <input type="text" id="externalSystemId" value="" placeholder="Enter External System ID">
+      <button onclick="fetchUserId()">View Fines</button>
+    </div>
+
+    <!-- Display fines -->
+    <div class="fines-list" id="finesList"></div>
+
+    <!-- Form to pay a fine -->
+    <div id="payFineForm" style="display: none;">
+      <h2>Pay Fine</h2>
+      <label for="fineId">Fine ID:</label>
+      <input type="text" id="fineId" readonly>
+
+      <label for="paymentMethod">Payment Method:</label>
+      <select id="paymentMethod">
+        <option value="Cash">Cash</option>
+        <option value="Online">Online</option>
+      </select>
+
+      <label for="amount">Amount:</label>
+      <input type="number" id="amount" placeholder="Enter amount">
+
+      <button onclick="payFine()">Pay Fine</button>
+    </div>
+  </div>
+
+  <script>
+    // Hardcoded credentials
+    const API_USERNAME = ''; // Replace with your API username
+    const API_PASSWORD = ''; // Replace with your API password
+    const BASE_URL = 'https://okapi-xxx.folio.ebsco.com'; // Replace with your FOLIO instance URL
+    const TENANT_ID = ''; // Replace with your tenant ID
+
+    let API_TOKEN = ''; // Variable to store the API token
+    let userId = ''; // Variable to store userId
+
+    // Headers for API requests
+    let headers = {
+      'x-okapi-tenant': TENANT_ID,
+      'Content-Type': 'application/json',
+    };
+
+    // Authenticate user and get token (using hardcoded credentials)
+    async function authenticateUser() {
+      const authEndpoint = `${BASE_URL}/authn/login`; // Adjust this if needed based on your FOLIO setup
+      const authData = {
+        username: API_USERNAME,
+        password: API_PASSWORD,
+      };
+
+      try {
+        const response = await fetch(authEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-okapi-tenant': TENANT_ID,  // Include tenant ID in the request
+          },
+          body: JSON.stringify(authData),
+        });
+
+        if (!response.ok) throw new Error('Authentication failed');
+
+        const authResponse = await response.json();
+        API_TOKEN = authResponse.okapiToken; // Store the token
+        headers['X-Okapi-Token'] = API_TOKEN; // Add token to headers for subsequent requests
+        console.log('Authentication successful');
+      } catch (error) {
+        console.error('Authentication error:', error);
+        alert('Failed to authenticate. Please check credentials.');
+      }
+    }
+
+    // Fetch userId based on External System ID
+    async function fetchUserId() {
+      const externalSystemId = document.getElementById('externalSystemId').value;
+      if (!externalSystemId) {
+        alert('Please enter an External System ID');
+        return;
+      }
+
+      const endpoint = `${BASE_URL}/users?query=externalSystemId==${externalSystemId}`;
+
+      try {
+        // Authenticate if not already done
+        if (!API_TOKEN) {
+          await authenticateUser();
+        }
+
+        const response = await fetch(endpoint, { headers });
+        if (!response.ok) throw new Error('Failed to fetch user data');
+
+        const userData = await response.json();
+        if (userData.users && userData.users.length > 0) {
+          userId = userData.users[0].id; // Extract userId
+          fetchFines(); // Fetch fines for the user
+        } else {
+          alert('No user found with the provided External System ID');
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        alert('Failed to fetch user data. Check the console for details.');
+      }
+    }
+
+    // Fetch fines for the user
+    async function fetchFines() {
+      if (!userId) {
+        alert('User ID is required');
+        return;
+      }
+
+      const endpoint = `${BASE_URL}/accounts?query=(userId==${userId} AND status.name==Open)`;
+
+      try {
+        // Authenticate if not already done
+        if (!API_TOKEN) {
+          await authenticateUser();
+        }
+
+        const response = await fetch(endpoint, { headers });
+        if (!response.ok) throw new Error('Failed to fetch fines');
+
+        const fines = await response.json();
+        displayFines(fines.accounts);
+      } catch (error) {
+        console.error('Error fetching fines:', error);
+        alert('Failed to fetch fines. Check the console for details.');
+      }
+    }
+
+    // Display fines in the UI
+    function displayFines(fines) {
+      const finesList = document.getElementById('finesList');
+      finesList.innerHTML = ''; // Clear previous results
+
+      if (fines.length === 0) {
+        finesList.innerHTML = '<p>No fines found for this user.</p>';
+        return;
+      }
+
+      fines.forEach(fine => {
+        const fineItem = document.createElement('div');
+        fineItem.className = 'fine-item';
+        fineItem.innerHTML = `
+          <h3>Fine ID: ${fine.id}</h3>
+          <h3>Title: ${fine.title}</h3>
+          <p>Location: ${fine.location}</p>
+          <p>Barcode: ${fine.barcode}</p>
+          <h3>Amount: ${fine.amount.toFixed(2)}</h3>
+          <h3>Remaining Amount: ${fine.remaining.toFixed(2)}</h3>
+          <p>Fine Status: ${fine.status.name}</p>
+          <p>Payment Status: ${fine.paymentStatus.name}</p>
+          <button onclick="selectFine('${fine.id}', ${fine.remaining.toFixed(2)})">Pay This Fine</button>
+        `;
+        finesList.appendChild(fineItem);
+      });
+    }
+
+    // Select a fine to pay
+    function selectFine(fineId, amount) {
+      document.getElementById('fineId').value = fineId;
+      document.getElementById('amount').value = parseFloat(amount).toFixed(2);
+      document.getElementById('payFineForm').style.display = 'block';
+    }
+
+    // Pay a fine
+    async function payFine() {
+      const fineId = document.getElementById('fineId').value;
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const amount = parseFloat(document.getElementById('amount').value).toFixed(2);
+
+      if (!fineId || !paymentMethod || !amount) {
+        alert('Please fill out all fields');
+        return;
+      }
+
+      const endpoint = `${BASE_URL}/accounts/${fineId}/pay`;
+      const paymentData = {
+        amount: parseFloat(amount),
+        paymentMethod: paymentMethod,
+        notifyPatron: false,
+        servicePointId: '',
+        userName: 'admin, admin', // Replace with the username of the person making the payment
+        transactionInfo: 'Paid via Web Interface'
+      };
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(paymentData),
+        });
+
+        if (!response.ok) throw new Error('Failed to pay fine');
+
+        const result = await response.json();
+
+        alert('Fine paid successfully.');
+        document.getElementById('payFineForm').style.display = 'none';
+        fetchFines(); // Refresh the fines list
+      } catch (error) {
+        console.error('Error paying fine:', error);
+        alert('Failed to pay fine. Check the console for details.');
+      }
+    }
+  </script>
+</body>
+</html>
