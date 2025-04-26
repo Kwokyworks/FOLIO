@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Configuration Manager</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .form-grid label {
+            color: #555;
+            font-weight: bold;
+        }
+        .form-grid input,
+        .form-grid select,
+        .form-grid textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .CodeMirror {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 200px;
+            font-size: 14px;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button.primary {
+            background-color: #005d9c;
+            color: #fff;
+        }
+        button.primary:hover:not(:disabled) {
+            background-color: #003f6b;
+        }
+        button.danger {
+            background-color: #d11;
+            color: #fff;
+        }
+        button.danger:hover:not(:disabled) {
+            background-color: #a00;
+        }
+        button.secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #555;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .log-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .log-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .log-table th,
+        .log-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .log-table th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .log-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .info { color: #005d9c; }
+        .success { color: #006600; }
+        .failure { color: #d11; }
+        .warning { color: #e68a00; }
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #005d9c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #d11;
+            margin: 10px 0;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-header button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .log-header button:hover {
+            color: #003f6b;
+        }
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #005d9c;
+            outline-offset: 2px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FOLIO Configuration Management Utility</h1>
+
+        <!-- Authentication Form -->
+        <section id="authForm">
+            <h2>Login to central administrative tenant for configuration</h2>
+            <div class="form-grid">
+                <label for="endpointUrl">Endpoint URL:</label>
+                <input type="url" id="endpointUrl" placeholder="e.g., https://okapi-demo2.folio.ebsco.com" value="https://okapi-demo2.folio.ebsco.com" maxlength="200" aria-required="true">
+
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001176" value="fs00001176" maxlength="50" aria-required="true">
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="authButton" class="primary" aria-label="Sign In">Login</button>
+            </div>
+            <div id="authLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Signing in...</span>
+            </div>
+            <div id="authError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Configuration Update Form -->
+        <section id="configUpdateContainer" class="hidden">
+            <h2>Manage Tenant Configurations</h2>
+            <div class="form-grid">
+                <label for="endpointSelect">Target Tenant:</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="">Select a tenant</option>
+                </select>
+            </div>
+            <div id="tenantAuthForm" class="form-grid hidden">
+                <label for="tenantUsername">Tenant Username:</label>
+                <input type="text" id="tenantUsername" placeholder="Enter username for selected tenant" maxlength="50" aria-required="true">
+
+                <label for="tenantPassword">Tenant Password:</label>
+                <input type="password" id="tenantPassword" placeholder="Enter password for selected tenant" maxlength="50" aria-required="true">
+            </div>
+            <div id="tenantAuthButtonContainer" class="button-group hidden">
+                <button id="tenantAuthButton" class="primary" aria-label="Authenticate Tenant">Authenticate Tenant</button>
+            </div>
+            <div id="configForm" class="form-grid hidden">
+                <label for="moduleSelect">Module:</label>
+                <select id="moduleSelect" aria-required="true">
+                    <option value="">Select a module</option>
+                </select>
+
+                <label for="configSelect">Configuration Entry:</label>
+                <select id="configSelect" aria-required="true">
+                    <option value="">Select a configuration</option>
+                </select>
+
+                <label for="configJson">Configuration JSON:</label>
+                <textarea id="configJson" placeholder="Enter or edit configuration JSON"></textarea>
+            </div>
+            <div class="button-group">
+                <button id="createConfigButton" class="primary" aria-label="Create New Configuration">Create New</button>
+                <button id="updateConfigButton" class="primary" aria-label="Update Configuration">Update</button>
+                <button id="deleteConfigButton" class="danger" aria-label="Delete Configuration">Delete</button>
+                <button id="resetConfigButton" class="secondary" aria-label="Reset Form">Reset</button>
+            </div>
+            <div id="configLoading" class="loading hidden" aria-live="polite"></div>
+            <div id="configError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Status and Logs Section -->
+        <section>
+            <div class="log-header">
+                <h2>Logs</h2>
+                <button id="clearLogsButton" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 16.67%;">Timestamp</th>
+                            <th style="width: 16.67%;">Type</th>
+                            <th style="width: 66.66%;">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/javascript/javascript.min.js"></script>
+    <script>
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authForm: document.getElementById("authForm"),
+            authLoading: document.getElementById("authLoading"),
+            authError: document.getElementById("authError"),
+            configUpdateContainer: document.getElementById("configUpdateContainer"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointUrl: document.getElementById("endpointUrl"),
+            tenantId: document.getElementById("tenantId"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            tenantAuthForm: document.getElementById("tenantAuthForm"),
+            tenantUsername: document.getElementById("tenantUsername"),
+            tenantPassword: document.getElementById("tenantPassword"),
+            tenantAuthButton: document.getElementById("tenantAuthButton"),
+            tenantAuthButtonContainer: document.getElementById("tenantAuthButtonContainer"),
+            configForm: document.getElementById("configForm"),
+            configLoading: document.getElementById("configLoading"),
+            configError: document.getElementById("configError"),
+            status: document.getElementById("status"),
+            moduleSelect: document.getElementById("moduleSelect"),
+            configSelect: document.getElementById("configSelect"),
+            configJson: document.getElementById("configJson"),
+            createConfigButton: document.getElementById("createConfigButton"),
+            updateConfigButton: document.getElementById("updateConfigButton"),
+            deleteConfigButton: document.getElementById("deleteConfigButton"),
+            resetConfigButton: document.getElementById("resetConfigButton"),
+            clearLogsButton: document.getElementById("clearLogsButton")
+        };
+
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let configurations = [];
+        let codeMirror = null;
+        let isCreateMode = false;
+
+        // Placeholder JSON template for new configurations
+        const newConfigTemplate = JSON.stringify({
+            code: "NEW_CONFIG_CODE",
+            module: "SETTINGS",
+            configName: "new_config",
+            enabled: true,
+            value: ""
+        }, null, 2);
+
+        // Initialize CodeMirror
+        function initializeCodeMirror() {
+            codeMirror = CodeMirror.fromTextArea(elements.configJson, {
+                mode: "application/json",
+                theme: "default",
+                lineNumbers: true,
+                indentUnit: 2,
+                tabSize: 2,
+                matchBrackets: true,
+                autoCloseBrackets: true
+            });
+            codeMirror.on("change", () => {
+                codeMirror.save();
+            });
+        }
+
+        // Initialize saved endpoint and CodeMirror
+        initializeCodeMirror();
+        loadEndpoint();
+        setInterval(checkTokenExpiration, 60000);
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.endpointSelect.addEventListener("change", handleEndpointChange);
+        elements.tenantAuthButton.addEventListener("click", handleTenantAuth);
+        elements.moduleSelect.addEventListener("change", populateConfigDropdown);
+        elements.configSelect.addEventListener("change", () => {
+            isCreateMode = false;
+            updateCreateButtonState();
+            displayConfiguration();
+        });
+        elements.createConfigButton.addEventListener("click", handleCreateConfig);
+        elements.updateConfigButton.addEventListener("click", performConfigUpdate);
+        elements.deleteConfigButton.addEventListener("click", performDeleteConfig);
+        elements.resetConfigButton.addEventListener("click", resetConfigForm);
+        elements.clearLogsButton.addEventListener("click", clearLogs);
+        elements.password.addEventListener('input', () => {
+            elements.password.value = elements.password.value.replace(/\s/g, '');
+        });
+        elements.tenantPassword.addEventListener('input', () => {
+            elements.tenantPassword.value = elements.tenantPassword.value.replace(/\s/g, '');
+        });
+        elements.username.addEventListener('focus', () => {
+            if (elements.username.value === elements.username.placeholder) {
+                elements.username.value = "";
+            }
+        });
+        elements.password.addEventListener('focus', () => {
+            if (elements.password.value === elements.password.placeholder) {
+                elements.password.value = "";
+            }
+        });
+
+        // Network status handlers
+        window.addEventListener('online', () => {
+            logMessage('success', 'Back online!');
+        });
+        window.addEventListener('offline', () => {
+            logMessage('failure', 'No internet connection.');
+        });
+
+        // Update Create Button State
+        function updateCreateButtonState() {
+            elements.createConfigButton.textContent = isCreateMode ? "Submit New" : "Create New";
+        }
+
+        // Clear Logs
+        function clearLogs() {
+            elements.status.innerHTML = '';
+            logMessage('info', 'Logs cleared');
+        }
+
+        // Handle Endpoint Change
+        function handleEndpointChange() {
+            const value = elements.endpointSelect.value;
+            if (value) {
+                [selectedEndpoint, tenantId] = value.split("|");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.configForm.classList.add('hidden');
+                elements.tenantUsername.value = "";
+                elements.tenantPassword.value = "";
+                logMessage('info', `Selected tenant: ${tenantId}. Please authenticate.`);
+            } else {
+                selectedEndpoint = null;
+                tenantId = null;
+                okapiToken = null;
+                tokenExpiration = null;
+                configurations = [];
+                elements.tenantAuthForm.classList.add('hidden');
+                elements.tenantAuthButtonContainer.classList.add('hidden');
+                elements.configForm.classList.add('hidden');
+                populateModuleDropdown();
+                populateConfigDropdown();
+                codeMirror.setValue("");
+                logMessage('info', 'No tenant selected.');
+            }
+        }
+
+        // Authenticate Selected Tenant
+        async function handleTenantAuth() {
+            const username = sanitizeInput(elements.tenantUsername.value.trim());
+            const password = sanitizeInput(elements.tenantPassword.value.trim());
+
+            if (!username || !password) {
+                elements.configError.textContent = "Please enter both username and password for the tenant.";
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50) {
+                elements.configError.textContent = "Username or password too long (max 50 characters).";
+                return;
+            }
+
+            toggleButtonState(true, 'tenantAuth');
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Authenticating tenant...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', `Successfully authenticated for tenant: ${tenantId}`);
+                    elements.tenantAuthForm.classList.add('hidden');
+                    elements.tenantAuthButtonContainer.classList.add('hidden');
+                    elements.configForm.classList.remove('hidden');
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    elements.configError.textContent = `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Tenant authentication error: ${err.message}`;
+            } finally {
+                elements.configLoading.classList.add('hidden');
+                toggleButtonState(false, 'tenantAuth');
+            }
+        }
+
+        // Populate Endpoint Dropdown
+        async function populateEndpointDropdown() {
+            if (!isTokenValid()) return;
+
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Fetching tenants...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?query=module==KwokyWorks%20and%20code==applications_configuration`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const config = data.configs?.[0];
+                    if (config && config.value) {
+                        const parsedValue = JSON.parse(config.value);
+                        const endpoints = parsedValue.endpoints || [];
+                        endpoints.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                        elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                        endpoints.forEach(endpoint => {
+                            const option = document.createElement("option");
+                            option.value = `${endpoint.url}|${endpoint.tenant}`;
+                            option.textContent = endpoint.name;
+                            elements.endpointSelect.appendChild(option);
+                        });
+                        logMessage('success', `Loaded ${endpoints.length} tenants.`);
+                    } else {
+                        logMessage('failure', "No tenant configuration found.");
+                    }
+                } else {
+                    const status = response.status;
+                    logMessage('failure', `Failed to fetch tenant configuration (HTTP ${status}).`);
+                }
+            } catch (err) {
+                logMessage('failure', `Error fetching tenants: ${err.message}`);
+            } finally {
+                elements.configLoading.classList.add('hidden');
+            }
+        }
+
+        // Handle Create Configuration
+        function handleCreateConfig() {
+            if (isCreateMode) {
+                performCreateConfig();
+            } else {
+                isCreateMode = true;
+                elements.moduleSelect.value = "";
+                elements.configSelect.value = "";
+                codeMirror.setValue(newConfigTemplate);
+                updateCreateButtonState();
+                logMessage('info', "Enter new configuration JSON and click 'Submit New'.");
+            }
+        }
+
+        // Authentication (Initial Sign-In)
+        async function handleAuth() {
+            const username = sanitizeInput(elements.username.value.trim());
+            const password = sanitizeInput(elements.password.value.trim());
+            selectedEndpoint = sanitizeInput(elements.endpointUrl.value.trim());
+            tenantId = sanitizeInput(elements.tenantId.value.trim());
+
+            if (!selectedEndpoint || !tenantId) {
+                elements.authError.textContent = "Please enter both endpoint URL and tenant ID.";
+                return;
+            }
+
+            if (!username || !password) {
+                elements.authError.textContent = "Please enter both username and password.";
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50 || tenantId.length > 50 || selectedEndpoint.length > 200) {
+                elements.authError.textContent = "Input too long (max 50 for username/password/tenant, 200 for URL).";
+                return;
+            }
+
+            if (!selectedEndpoint.match(/^https?:\/\/[^\s/$.?#].[^\s]*$/)) {
+                elements.authError.textContent = "Invalid endpoint URL format.";
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.classList.remove('hidden');
+            elements.authError.textContent = '';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', "Successfully signed in!");
+                    elements.authForm.style.display = "none";
+                    elements.configUpdateContainer.style.display = "block";
+                    saveEndpoint();
+                    await populateEndpointDropdown();
+                } else {
+                    const error = await response.json();
+                    elements.authError.textContent = `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                }
+            } catch (err) {
+                elements.authError.textContent = `Connection error: ${err.message}`;
+            } finally {
+                elements.authLoading.classList.add('hidden');
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        // Fetch Configurations
+        async function fetchConfigurations() {
+            if (!isTokenValid() || !selectedEndpoint || !tenantId) {
+                logMessage('failure', "Please authenticate for the selected tenant.");
+                return;
+            }
+
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Processing...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?limit=500`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    configurations = data.configs || [];
+                    populateModuleDropdown();
+                    populateConfigDropdown();
+                    logMessage('success', `Retrieved ${configurations.length} configurations for tenant ${tenantId}.`);
+                } else {
+                    throw new Error(`Failed to fetch configurations (HTTP ${response.status}).`);
+                }
+            } catch (err) {
+                logMessage('failure', `Error fetching configurations: ${err.message}`);
+                configurations = [];
+                populateModuleDropdown();
+                populateConfigDropdown();
+            } finally {
+                elements.configLoading.classList.add('hidden');
+            }
+        }
+
+        // Populate Module Dropdown
+        function populateModuleDropdown() {
+            elements.moduleSelect.innerHTML = '<option value="">Select a module</option>';
+            const modules = [...new Set(configurations.map(config => config.module || "UNKNOWN"))]
+                .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            modules.forEach(module => {
+                const option = document.createElement("option");
+                option.value = module;
+                option.textContent = module;
+                elements.moduleSelect.appendChild(option);
+            });
+        }
+
+        // Populate Configuration Dropdown
+        function populateConfigDropdown() {
+            elements.configSelect.innerHTML = '<option value="">Select a configuration</option>';
+            const selectedModule = elements.moduleSelect.value;
+            const filteredConfigs = selectedModule
+                ? configurations.filter(config => (config.module || "UNKNOWN") === selectedModule)
+                : [];
+            filteredConfigs
+                .sort((a, b) => {
+                    const aText = (a.code || a.id || "").trim().toLowerCase();
+                    const bText = (b.code || a.id || "").trim().toLowerCase();
+                    return aText.localeCompare(bText);
+                })
+                .forEach(config => {
+                    const option = document.createElement("option");
+                    option.value = config.id;
+                    option.textContent = config.code || config.id;
+                    elements.configSelect.appendChild(option);
+                });
+            if (selectedModule) {
+                logMessage('info', `Loaded ${filteredConfigs.length} configurations for module: ${selectedModule}`);
+            }
+        }
+
+        // Display Selected Configuration
+        function displayConfiguration() {
+            const configId = elements.configSelect.value;
+            const config = configurations.find(c => c.id === configId);
+            if (config) {
+                try {
+                    codeMirror.setValue(JSON.stringify(config, null, 2));
+                    logMessage('info', `Loaded configuration: ${config.code || config.id}`);
+                } catch (err) {
+                    codeMirror.setValue("");
+                    logMessage('failure', "Error parsing configuration JSON.");
+                }
+            } else {
+                codeMirror.setValue("");
+            }
+        }
+
+        // Create New Configuration
+        async function performCreateConfig() {
+            const jsonInput = codeMirror.getValue().trim();
+
+            if (!isTokenValid()) {
+                logMessage('failure', "Session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.configForm.classList.add('hidden');
+                isCreateMode = false;
+                updateCreateButtonState();
+                return;
+            }
+
+            if (!jsonInput) {
+                elements.configError.textContent = "Please enter configuration JSON.";
+                return;
+            }
+
+            let parsedJson;
+            try {
+                parsedJson = JSON.parse(jsonInput);
+                if (!parsedJson.code) {
+                    elements.configError.textContent = "New configuration must include a 'code' field.";
+                    return;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Invalid JSON format: ${err.message}. Input: ${jsonInput.slice(0, 50)}${jsonInput.length > 50 ? '...' : ''}`;
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Processing...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify(parsedJson)
+                });
+
+                if (response.ok) {
+                    const newConfig = await response.json();
+                    logMessage('success', `New configuration created: ${parsedJson.code}`);
+                    isCreateMode = false;
+                    updateCreateButtonState();
+                    configurations.push(newConfig);
+                    populateModuleDropdown();
+                    const newModule = newConfig.module || "UNKNOWN";
+                    elements.moduleSelect.value = newModule;
+                    populateConfigDropdown();
+                    resetConfigForm();
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    elements.configError.textContent = `Creation failed: ${error.errors?.[0]?.message || 'Unknown error'}`;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Creation error: ${err.message}`;
+            } finally {
+                elements.configLoading.classList.add('hidden');
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Update Configuration
+        async function performConfigUpdate() {
+            const configId = elements.configSelect.value;
+            const jsonInput = codeMirror.getValue().trim();
+
+            if (!isTokenValid()) {
+                logMessage('failure', "Session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.configForm.classList.add('hidden');
+                return;
+            }
+
+            if (!configId) {
+                elements.configError.textContent = "Please select a configuration to update.";
+                return;
+            }
+
+            if (!jsonInput) {
+                elements.configError.textContent = "Please enter configuration JSON.";
+                return;
+            }
+
+            let parsedJson;
+            try {
+                parsedJson = JSON.parse(jsonInput);
+                if (!parsedJson.id || parsedJson.id !== configId) {
+                    elements.configError.textContent = "Configuration ID in JSON must match selected configuration.";
+                    return;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Invalid JSON format: ${err.message}. Input: ${jsonInput.slice(0, 50)}${jsonInput.length > 50 ? '...' : ''}`;
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Processing...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries/${configId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify(parsedJson)
+                });
+
+                if (response.ok) {
+                    logMessage('success', `Configuration updated: ${parsedJson.code || configId}`);
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    elements.configError.textContent = `Update failed: ${error.errors?.[0]?.message || 'Unknown error'}`;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Update error: ${err.message}`;
+            } finally {
+                elements.configLoading.classList.add('hidden');
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Delete Configuration
+        async function performDeleteConfig() {
+            const configId = elements.configSelect.value;
+            const config = configurations.find(c => c.id === configId);
+
+            if (!isTokenValid()) {
+                logMessage('failure', "Session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.configForm.classList.add('hidden');
+                return;
+            }
+
+            if (!configId) {
+                elements.configError.textContent = "Please select a configuration to delete.";
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete configuration: ${config.code || config.id}?`)) {
+                logMessage('info', "Deletion cancelled.");
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configLoading.classList.remove('hidden');
+            elements.configLoading.innerHTML = '<span class="spinner"></span> Processing...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries/${configId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+
+                if (response.ok) {
+                    logMessage('success', `Configuration deleted: ${config.code || configId}`);
+                    resetConfigForm();
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    elements.configError.textContent = `Deletion failed: ${error.errors?.[0]?.message || 'Unknown error'}`;
+                }
+            } catch (err) {
+                elements.configError.textContent = `Deletion error: ${err.message}`;
+            } finally {
+                elements.configLoading.classList.add('hidden');
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Reset Configuration Form
+        function resetConfigForm() {
+            elements.moduleSelect.value = "";
+            elements.configSelect.value = "";
+            codeMirror.setValue("");
+            isCreateMode = false;
+            updateCreateButtonState();
+            populateConfigDropdown();
+            logMessage('info', "Form reset.");
+        }
+
+        // Token Validation
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                return false;
+            }
+            return true;
+        }
+
+        // Reset Session
+        function resetSession(message) {
+            okapiToken = null;
+            tokenExpiration = null;
+            selectedEndpoint = null;
+            tenantId = null;
+            configurations = [];
+            elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+            elements.tenantAuthForm.classList.add('hidden');
+            elements.tenantAuthButtonContainer.classList.add('hidden');
+            elements.configForm.classList.add('hidden');
+            logMessage('failure', message);
+            elements.authForm.style.display = "block";
+            elements.configUpdateContainer.style.display = "none";
+            resetConfigForm();
+        }
+
+        // Log message to table
+        function logMessage(type, message) {
+            const statusTable = elements.status;
+            const row = document.createElement('tr');
+            const timestamp = new Date().toLocaleTimeString();
+            row.innerHTML = `
+                <td>${timestamp}</td>
+                <td class="${type} capitalize">${type}</td>
+                <td>${message}</td>
+            `;
+            statusTable.prepend(row);
+        }
+
+        // Toggle Button State
+        function toggleButtonState(disable, formType) {
+            if (formType === 'auth') {
+                elements.authButton.disabled = disable;
+            } else if (formType === 'tenantAuth') {
+                elements.tenantAuthButton.disabled = disable;
+            } else if (formType === 'configUpdate') {
+                [elements.createConfigButton, elements.updateConfigButton, elements.deleteConfigButton, elements.resetConfigButton]
+                    .forEach(button => button.disabled = disable);
+            }
+        }
+
+        // Check Token Expiration
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                logMessage('failure', "Tenant session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.configForm.classList.add('hidden');
+            }
+        }
+
+        // Save Endpoint
+        function saveEndpoint() {
+            const value = `${elements.endpointUrl.value}|${elements.tenantId.value}`;
+            localStorage.setItem('lastEndpoint', value);
+        }
+
+        // Load Endpoint
+        function loadEndpoint() {
+            const saved = localStorage.getItem('lastEndpoint');
+            if (saved) {
+                const [url, tenant] = saved.split("|");
+                elements.endpointUrl.value = url || elements.endpointUrl.placeholder;
+                elements.tenantId.value = tenant || elements.tenantId.placeholder;
+            }
+        }
+
+        // Fetch with Retry
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Input Sanitization
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

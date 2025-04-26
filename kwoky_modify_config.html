@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Configuration Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.7/codemirror.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #34495e;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #fff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+        }
+
+        .CodeMirror {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            min-height: 200px;
+            font-size: 1rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button.secondary {
+            background: #95a5a6;
+        }
+
+        button.secondary:hover {
+            background: #7f8c8d;
+        }
+
+        button.danger {
+            background: #c62828;
+        }
+
+        button.danger:hover {
+            background: #b71c1c;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .activity-log {
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            background: #f9f9f9;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            word-wrap: break-word;
+        }
+
+        .log-entry.success {
+            color: #2e7d32;
+        }
+
+        .log-entry.error {
+            color: #c62828;
+        }
+
+        .log-entry.info {
+            color: #1976d2;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin: 10px 0;
+        }
+
+        .loading::after {
+            content: ".";
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: "."; }
+            40% { content: ".."; }
+            60% { content: "..."; }
+            80%, 100% { content: ""; }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            h3 { font-size: 1.3rem; }
+            .button-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Form -->
+        <div id="authForm">
+            <h3>FOLIO Login</h3>
+            <div class="form-group">
+                <label for="endpointSelect">Library System</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="https://okapi-demo2.folio.ebsco.com|fs00001176">Demo 2 Library</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <button id="authButton">Sign In</button>
+            <div id="authLoading" class="loading">Signing in...</div>
+            <div id="authLog" class="activity-log" role="log" aria-live="polite"></div>
+        </div>
+
+        <!-- Configuration Update Form -->
+        <div id="configUpdateContainer" style="display: none;">
+            <h3>Manage Tenant Configurations</h3>
+            <div class="form-group">
+                <label for="moduleSelect">Module</label>
+                <select id="moduleSelect" aria-required="true">
+                    <option value="">Select a module</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="configSelect">Configuration Entry</label>
+                <select id="configSelect" aria-required="true">
+                    <option value="">Select a configuration</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="configJson">Configuration JSON</label>
+                <textarea id="configJson" placeholder="Enter or edit configuration JSON"></textarea>
+            </div>
+            <div class="button-group">
+                <button id="createConfigButton">Create New</button>
+                <button id="updateConfigButton">Update</button>
+                <button id="deleteConfigButton" class="danger">Delete</button>
+                <button id="resetConfigButton" class="secondary">Reset</button>
+            </div>
+            <div id="configUpdateLoading" class="loading">Processing...</div>
+            <div id="configUpdateLog" class="activity-log" role="log" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.7/mode/javascript/javascript.min.js"></script>
+    <script>
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authLog: document.getElementById("authLog"),
+            authForm: document.getElementById("authForm"),
+            configUpdateContainer: document.getElementById("configUpdateContainer"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            authLoading: document.getElementById("authLoading"),
+            configUpdateLoading: document.getElementById("configUpdateLoading"),
+            configUpdateLog: document.getElementById("configUpdateLog"),
+            moduleSelect: document.getElementById("moduleSelect"),
+            configSelect: document.getElementById("configSelect"),
+            configJson: document.getElementById("configJson"),
+            createConfigButton: document.getElementById("createConfigButton"),
+            updateConfigButton: document.getElementById("updateConfigButton"),
+            deleteConfigButton: document.getElementById("deleteConfigButton"),
+            resetConfigButton: document.getElementById("resetConfigButton")
+        };
+
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let configurations = [];
+        let codeMirror = null;
+        let isCreateMode = false;
+
+        // Placeholder JSON template for new configurations
+        const newConfigTemplate = JSON.stringify({
+            code: "NEW_CONFIG_CODE",
+            module: "SETTINGS",
+            configName: "new_config",
+            enabled: true,
+            value: ""
+        }, null, 2);
+
+        // Initialize CodeMirror
+        function initializeCodeMirror() {
+            codeMirror = CodeMirror.fromTextArea(elements.configJson, {
+                mode: "application/json",
+                theme: "default",
+                lineNumbers: true,
+                indentUnit: 2,
+                tabSize: 2,
+                matchBrackets: true,
+                autoCloseBrackets: true
+            });
+            codeMirror.on("change", () => {
+                codeMirror.save();
+            });
+        }
+
+        // Initialize saved endpoint and CodeMirror
+        loadEndpoint();
+        initializeCodeMirror();
+        setInterval(checkTokenExpiration, 60000);
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.moduleSelect.addEventListener("change", populateConfigDropdown);
+        elements.configSelect.addEventListener("change", () => {
+            isCreateMode = false;
+            updateCreateButtonState();
+            displayConfiguration();
+        });
+        elements.createConfigButton.addEventListener("click", handleCreateConfig);
+        elements.updateConfigButton.addEventListener("click", performConfigUpdate);
+        elements.deleteConfigButton.addEventListener("click", performDeleteConfig);
+        elements.resetConfigButton.addEventListener("click", resetConfigForm);
+        elements.password.addEventListener('input', () => {
+            elements.password.value = elements.password.value.replace(/\s/g, '');
+        });
+
+        // Network status handlers
+        window.addEventListener('online', () => {
+            appendLog(elements.authLog, "Back online!", "success");
+        });
+        window.addEventListener('offline', () => {
+            appendLog(elements.authLog, "No internet connection.", "error");
+        });
+
+        // Update Create Button State
+        function updateCreateButtonState() {
+            elements.createConfigButton.textContent = isCreateMode ? "Submit New" : "Create New";
+        }
+
+        // Handle Create Configuration
+        function handleCreateConfig() {
+            if (isCreateMode) {
+                performCreateConfig();
+            } else {
+                isCreateMode = true;
+                elements.moduleSelect.value = "";
+                elements.configSelect.value = "";
+                codeMirror.setValue(newConfigTemplate);
+                updateCreateButtonState();
+                appendLog(elements.configUpdateLog, "Enter new configuration JSON and click 'Submit New'.", "info");
+            }
+        }
+
+        // Authentication
+        async function handleAuth() {
+            const username = elements.username.value.trim();
+            const password = elements.password.value.trim();
+            [selectedEndpoint, tenantId] = elements.endpointSelect.value.split("|");
+
+            if (!username || !password) {
+                appendLog(elements.authLog, "Please enter both username and password.", "error");
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50) {
+                appendLog(elements.authLog, "Username or password too long.", "error");
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    appendLog(elements.authLog, "Successfully signed in!", "success");
+                    elements.authForm.style.display = "none";
+                    elements.configUpdateContainer.style.display = "block";
+                    saveEndpoint();
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    appendLog(elements.authLog, `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`, "error");
+                }
+            } catch (err) {
+                appendLog(elements.authLog, `Connection error: ${err.message}`, "error");
+            } finally {
+                elements.authLoading.style.display = "none";
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        // Fetch Configurations
+        async function fetchConfigurations() {
+            if (!isTokenValid()) return;
+
+            elements.configUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?limit=500`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    configurations = data.configs || [];
+                    populateModuleDropdown();
+                    populateConfigDropdown();
+                    appendLog(elements.configUpdateLog, `Retrieved ${configurations.length} configurations.`, "success");
+                } else {
+                    throw new Error("Failed to fetch configurations.");
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Error fetching configurations: ${err.message}`, "error");
+                configurations = [];
+                populateModuleDropdown();
+                populateConfigDropdown();
+            } finally {
+                elements.configUpdateLoading.style.display = "none";
+            }
+        }
+
+        // Populate Module Dropdown
+        function populateModuleDropdown() {
+            elements.moduleSelect.innerHTML = '<option value="">Select a module</option>';
+            const modules = [...new Set(configurations.map(config => config.module || "UNKNOWN"))]
+                .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+            modules.forEach(module => {
+                const option = document.createElement("option");
+                option.value = module;
+                option.textContent = module;
+                elements.moduleSelect.appendChild(option);
+            });
+        }
+
+        // Populate Configuration Dropdown
+        function populateConfigDropdown() {
+            elements.configSelect.innerHTML = '<option value="">Select a configuration</option>';
+            const selectedModule = elements.moduleSelect.value;
+            const filteredConfigs = selectedModule
+                ? configurations.filter(config => (config.module || "UNKNOWN") === selectedModule)
+                : [];
+            filteredConfigs
+                .sort((a, b) => {
+                    const aText = (a.code || a.id || "").trim().toLowerCase();
+                    const bText = (b.code || b.id || "").trim().toLowerCase();
+                    return aText.localeCompare(bText);
+                })
+                .forEach(config => {
+                    const option = document.createElement("option");
+                    option.value = config.id;
+                    option.textContent = config.code || config.id;
+                    elements.configSelect.appendChild(option);
+                });
+            if (selectedModule) {
+                appendLog(elements.configUpdateLog, `Loaded ${filteredConfigs.length} configurations for module: ${selectedModule}`, "info");
+            }
+        }
+
+        // Display Selected Configuration
+        function displayConfiguration() {
+            const configId = elements.configSelect.value;
+            const config = configurations.find(c => c.id === configId);
+            if (config) {
+                try {
+                    codeMirror.setValue(JSON.stringify(config, null, 2));
+                    appendLog(elements.configUpdateLog, `Loaded configuration: ${config.code || config.id}`, "info");
+                } catch (err) {
+                    codeMirror.setValue("");
+                    appendLog(elements.configUpdateLog, "Error parsing configuration JSON.", "error");
+                }
+            } else {
+                codeMirror.setValue("");
+            }
+        }
+
+        // Create New Configuration
+        async function performCreateConfig() {
+            const jsonInput = codeMirror.getValue().trim();
+
+            if (!isTokenValid()) {
+                appendLog(elements.configUpdateLog, "Session expired. Please sign in again.", "error");
+                isCreateMode = false;
+                updateCreateButtonState();
+                return;
+            }
+
+            if (!jsonInput) {
+                appendLog(elements.configUpdateLog, "Please enter configuration JSON.", "error");
+                return;
+            }
+
+            let parsedJson;
+            try {
+                parsedJson = JSON.parse(jsonInput);
+                if (!parsedJson.code) {
+                    appendLog(elements.configUpdateLog, "New configuration must include a 'code' field.", "error");
+                    return;
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Invalid JSON format: ${err.message}. Input: ${jsonInput.slice(0, 50)}${jsonInput.length > 50 ? '...' : ''}`, "error");
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify(parsedJson)
+                });
+
+                if (response.ok) {
+                    const newConfig = await response.json();
+                    appendLog(elements.configUpdateLog, `New configuration created: ${parsedJson.code}`, "success");
+                    isCreateMode = false;
+                    updateCreateButtonState();
+                    configurations.push(newConfig);
+                    populateModuleDropdown();
+                    const newModule = newConfig.module || "UNKNOWN";
+                    elements.moduleSelect.value = newModule;
+                    populateConfigDropdown();
+                    resetConfigForm();
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    appendLog(elements.configUpdateLog, `Creation failed: ${error.errors?.[0]?.message || 'Unknown error'}`, "error");
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Creation error: ${err.message}`, "error");
+            } finally {
+                elements.configUpdateLoading.style.display = "none";
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Update Configuration
+        async function performConfigUpdate() {
+            const configId = elements.configSelect.value;
+            const jsonInput = codeMirror.getValue().trim();
+
+            if (!isTokenValid()) {
+                appendLog(elements.configUpdateLog, "Session expired. Please sign in again.", "error");
+                return;
+            }
+
+            if (!configId) {
+                appendLog(elements.configUpdateLog, "Please select a configuration to update.", "error");
+                return;
+            }
+
+            if (!jsonInput) {
+                appendLog(elements.configUpdateLog, "Please enter configuration JSON.", "error");
+                return;
+            }
+
+            let parsedJson;
+            try {
+                parsedJson = JSON.parse(jsonInput);
+                if (!parsedJson.id || parsedJson.id !== configId) {
+                    appendLog(elements.configUpdateLog, "Configuration ID in JSON must match selected configuration.", "error");
+                    return;
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Invalid JSON format: ${err.message}. Input: ${jsonInput.slice(0, 50)}${jsonInput.length > 50 ? '...' : ''}`, "error");
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries/${configId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    },
+                    body: JSON.stringify(parsedJson)
+                });
+
+                if (response.ok) {
+                    appendLog(elements.configUpdateLog, `Configuration updated: ${parsedJson.code || configId}`, "success");
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    appendLog(elements.configUpdateLog, `Update failed: ${error.errors?.[0]?.message || 'Unknown error'}`, "error");
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Update error: ${err.message}`, "error");
+            } finally {
+                elements.configUpdateLoading.style.display = "none";
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Delete Configuration
+        async function performDeleteConfig() {
+            const configId = elements.configSelect.value;
+            const config = configurations.find(c => c.id === configId);
+
+            if (!isTokenValid()) {
+                appendLog(elements.configUpdateLog, "Session expired. Please sign in again.", "error");
+                return;
+            }
+
+            if (!configId) {
+                appendLog(elements.configUpdateLog, "Please select a configuration to delete.", "error");
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete configuration: ${config.code || config.id}?`)) {
+                appendLog(elements.configUpdateLog, "Deletion cancelled.", "info");
+                return;
+            }
+
+            toggleButtonState(true, 'configUpdate');
+            elements.configUpdateLoading.style.display = "block";
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries/${configId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+
+                if (response.ok) {
+                    appendLog(elements.configUpdateLog, `Configuration deleted: ${config.code || configId}`, "success");
+                    resetConfigForm();
+                    await fetchConfigurations();
+                } else {
+                    const error = await response.json();
+                    appendLog(elements.configUpdateLog, `Deletion failed: ${error.errors?.[0]?.message || 'Unknown error'}`, "error");
+                }
+            } catch (err) {
+                appendLog(elements.configUpdateLog, `Deletion error: ${err.message}`, "error");
+            } finally {
+                elements.configUpdateLoading.style.display = "none";
+                toggleButtonState(false, 'configUpdate');
+            }
+        }
+
+        // Reset Configuration Form
+        function resetConfigForm() {
+            elements.moduleSelect.value = "";
+            elements.configSelect.value = "";
+            codeMirror.setValue("");
+            isCreateMode = false;
+            updateCreateButtonState();
+            populateConfigDropdown();
+            appendLog(elements.configUpdateLog, "Form reset.", "info");
+        }
+
+        // Token Validation
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                resetSession("Session expired. Please sign in again.");
+                return false;
+            }
+            return true;
+        }
+
+        // Reset Session
+        function resetSession(message) {
+            okapiToken = null;
+            tokenExpiration = null;
+            configurations = [];
+            appendLog(elements.authLog, message, "error");
+            elements.authForm.style.display = "block";
+            elements.configUpdateContainer.style.display = "none";
+            resetConfigForm();
+        }
+
+        // Append Log
+        function appendLog(element, message, type) {
+            const timestamp = new Date().toLocaleString();
+            const logEntry = document.createElement("div");
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            element.appendChild(logEntry);
+            element.scrollTop = element.scrollHeight;
+        }
+
+        // Toggle Button State
+        function toggleButtonState(disable, formType) {
+            const buttons = formType === 'auth' ?
+                [elements.authButton] :
+                [elements.createConfigButton, elements.updateConfigButton, elements.deleteConfigButton, elements.resetConfigButton];
+            
+            buttons.forEach(button => {
+                button.disabled = disable;
+            });
+        }
+
+        // Check Token Expiration
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                resetSession("Session expired. Please sign in again.");
+            }
+        }
+
+        // Save Endpoint
+        function saveEndpoint() {
+            localStorage.setItem('lastEndpoint', elements.endpointSelect.value);
+        }
+
+        // Load Endpoint
+        function loadEndpoint() {
+            const saved = localStorage.getItem('lastEndpoint');
+            if (saved && Array.from(elements.endpointSelect.options).some(opt => opt.value === saved)) {
+                elements.endpointSelect.value = saved;
+            }
+        }
+
+        // Fetch with Retry
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (err) {
+                    if (i === retries - 1) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Input Sanitization
+        function sanitizeInput(input) {
+            const div = document.createElement('div');
+            div.textContent = input;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
