@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Email Search and Export Application</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .form-grid label {
+            color: #555;
+            font-weight: bold;
+        }
+        .form-grid input,
+        .form-grid select,
+        .form-grid textarea {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button.primary {
+            background-color: #005d9c;
+            color: #fff;
+        }
+        button.primary:hover:not(:disabled) {
+            background-color: #003f6b;
+        }
+        button.danger {
+            background-color: #d11;
+            color: #fff;
+        }
+        button.danger:hover:not(:disabled) {
+            background-color: #a00;
+        }
+        button.secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #555;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .log-table, .results-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: block;
+            visibility: visible;
+        }
+        .log-table table, .results-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .log-table th, .log-table td,
+        .results-table th, .results-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .log-table th, .results-table th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .log-table tr:hover, .results-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .info { color: #005d9c; }
+        .success { color: #006600; }
+        .failure { color: #d11; }
+        .warning { color: #e68a00; }
+        .capitalize { text-transform: capitalize; }
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #005d9c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #d11;
+            margin: 10px 0;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-header button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .log-header button:hover {
+            color: #003f6b;
+        }
+        button:focus,
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #005d9c;
+            outline-offset: 2px;
+        }
+        .hidden {
+            display: none;
+        }
+        .column-selector {
+            margin: 15px 0;
+        }
+        .column-selector h3 {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .checkbox-item label {
+            font-weight: normal;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+        }
+        .pagination {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .log-section.hidden {
+            display: none;
+        }
+        .toggle-logs-button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .toggle-logs-button:hover {
+            color: #003f6b;
+        }
+        @media (max-width: 600px) {
+            .checkbox-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FOLIO Email Search and Export Application</h1>
+
+        <!-- Authentication Form -->
+        <section id="authForm">
+            <h2>Login to Central Administrative Tenant</h2>
+            <div class="form-grid">
+                <label for="endpointUrl">Endpoint URL:</label>
+                <input type="url" id="endpointUrl" placeholder="e.g., https://okapi-demo2.folio.ebsco.com" value="https://okapi-demo2.folio.ebsco.com" maxlength="200" aria-required="true">
+
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001176" value="fs00001176" maxlength="50" aria-required="true">
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="authButton" class="primary" aria-label="Sign In">Sign In</button>
+            </div>
+            <div id="authLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Signing in...</span>
+            </div>
+            <div id="authError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Email Search Form -->
+        <section id="searchFormContainer" class="hidden">
+            <h2>Search Emails</h2>
+            <div class="form-grid">
+                <label for="endpointSelect">Target Tenant:</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="">Select a tenant</option>
+                </select>
+            </div>
+            <div id="tenantAuthForm" class="form-grid hidden">
+                <label for="tenantUsername">Tenant Username:</label>
+                <input type="text" id="tenantUsername" placeholder="Enter username for selected tenant" maxlength="50" aria-required="true">
+
+                <label for="tenantPassword">Tenant Password:</label>
+                <input type="password" id="tenantPassword" placeholder="Enter password for selected tenant" maxlength="50" aria-required="true">
+            </div>
+            <div id="tenantAuthButtonContainer" class="button-group hidden">
+                <button id="tenantAuthButton" class="primary" aria-label="Authenticate Tenant">Authenticate Tenant</button>
+            </div>
+            <div id="searchForm" class="form-grid hidden">
+                <label for="emailStatus">Email Status:</label>
+                <select id="emailStatus">
+                    <option value="all">All</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILURE">Failure</option>
+                </select>
+
+                <label for="shouldRetry">Retry Status:</label>
+                <select id="shouldRetry">
+                    <option value="all">All</option>
+                    <option value="true">Should Retry</option>
+                    <option value="false">No Retry</option>
+                </select>
+
+                <label for="deliveryChannel">Delivery Channel:</label>
+                <select id="deliveryChannel">
+                    <option value="all">All</option>
+                    <option value="email">Email</option>
+                </select>
+
+                <label for="recipient">Recipient Email:</label>
+                <input type="text" id="recipient" placeholder="Enter recipient email">
+
+                <label for="header">Subject Contains:</label>
+                <input type="text" id="header" placeholder="Enter subject keyword">
+
+                <label for="dateStart">Date Start:</label>
+                <input type="date" id="dateStart">
+
+                <label for="dateEnd">Date End:</label>
+                <input type="date" id="dateEnd">
+
+                <label for="limit">Limit (max results):</label>
+                <input type="number" id="limit" value="50" min="1" aria-required="true">
+
+                <label for="rangeStart">Display Start:</label>
+                <input type="number" id="rangeStart" placeholder="Start (1-based)" min="1" value="1">
+
+                <label for="rangeEnd">Display End:</label>
+                <input type="number" id="rangeEnd" placeholder="End (1-based)" min="1">
+            </div>
+            <div class="column-selector">
+                <h3>Select Columns</h3>
+                <div class="button-group">
+                    <button type="button" onclick="selectAllColumns()" class="secondary" aria-label="Select All Columns">Select All</button>
+                    <button type="button" onclick="unselectAllColumns()" class="secondary" aria-label="Unselect All Columns">Unselect All</button>
+                </div>
+                <div class="checkbox-grid" id="columnCheckboxes"></div>
+            </div>
+            <div class="button-group">
+                <button id="searchButton" class="primary" aria-label="Search Emails">Search</button>
+            </div>
+            <div id="searchLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Searching...</span>
+            </div>
+            <div id="searchError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsContainer" class="hidden">
+            <h2>Results</h2>
+            <div class="button-group">
+                <button onclick="exportToCSV()" class="primary" aria-label="Export to CSV">Export to CSV</button>
+                <button onclick="exportToJSON()" class="primary" aria-label="Export to JSON">Export to JSON</button>
+            </div>
+            <div class="results-table">
+                <table id="resultsTable">
+                    <thead id="resultsHeader"></thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination" id="paginationControls" class="hidden">
+                <button onclick="prevPage()" class="secondary" aria-label="Previous Page">Previous</button>
+                <span id="pageInfo"></span>
+                <button onclick="nextPage()" class="secondary" aria-label="Next Page">Next</button>
+                <label for="pageSize">Rows per page:</label>
+                <select id="pageSize" onchange="changePageSize()" aria-label="Select rows per page">
+                    <option value="5">5</option>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Logs Toggle Button -->
+        <button id="toggleLogsButton" class="toggle-logs-button" aria-expanded="false" aria-controls="logSection" aria-label="Show Logs">Show Logs</button>
+
+        <!-- Logs Section -->
+        <section class="log-section hidden" id="logSection">
+            <div class="log-header">
+                <h2>Logs</h2>
+                <button id="clearLogsButton" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 16.67%;">Timestamp</th>
+                            <th style="width: 16.67%;">Type</th>
+                            <th style="width: 66.66%;">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authForm: document.getElementById("authForm"),
+            authLoading: document.getElementById("authLoading"),
+            authError: document.getElementById("authError"),
+            searchFormContainer: document.getElementById("searchFormContainer"),
+            endpointUrl: document.getElementById("endpointUrl"),
+            tenantId: document.getElementById("tenantId"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            tenantAuthForm: document.getElementById("tenantAuthForm"),
+            tenantUsername: document.getElementById("tenantUsername"),
+            tenantPassword: document.getElementById("tenantPassword"),
+            tenantAuthButton: document.getElementById("tenantAuthButton"),
+            tenantAuthButtonContainer: document.getElementById("tenantAuthButtonContainer"),
+            searchForm: document.getElementById("searchForm"),
+            searchButton: document.getElementById("searchButton"),
+            searchLoading: document.getElementById("searchLoading"),
+            searchError: document.getElementById("searchError"),
+            logTable: document.getElementById("status"),
+            resultsContainer: document.getElementById("resultsContainer"),
+            resultsTable: document.getElementById("resultsTable"),
+            resultsHeader: document.getElementById("resultsHeader"),
+            resultsBody: document.getElementById("resultsBody"),
+            paginationControls: document.getElementById("paginationControls"),
+            pageInfo: document.getElementById("pageInfo"),
+            pageSize: document.getElementById("pageSize"),
+            clearLogsButton: document.getElementById("clearLogsButton"),
+            toggleLogsButton: document.getElementById("toggleLogsButton"),
+            logSection: document.getElementById("logSection"),
+            emailStatus: document.getElementById("emailStatus"),
+            shouldRetry: document.getElementById("shouldRetry"),
+            deliveryChannel: document.getElementById("deliveryChannel"),
+            recipient: document.getElementById("recipient"),
+            header: document.getElementById("header"),
+            dateStart: document.getElementById("dateStart"),
+            dateEnd: document.getElementById("dateEnd"),
+            limit: document.getElementById("limit"),
+            rangeStart: document.getElementById("rangeStart"),
+            rangeEnd: document.getElementById("rangeEnd"),
+            columnCheckboxes: document.getElementById("columnCheckboxes")
+        };
+
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let allEmails = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        const allEmailFields = [
+            'id', 'notificationId', 'to', 'header', 'outputFormat', 'body', 'attachments',
+            'status', 'shouldRetry', 'attemptCount', 'message', 'date', 'deliveryChannel',
+            'metadata.createdDate', 'metadata.updatedDate'
+        ];
+
+        // Log Message
+        function logMessage(type, message) {
+            try {
+                const statusTable = elements.logTable;
+                if (statusTable) {
+                    if (statusTable.tagName.toLowerCase() !== 'tbody') {
+                        console.error('Log table is not a <tbody> element:', statusTable);
+                        return;
+                    }
+                    const row = document.createElement('tr');
+                    const timestamp = new Date().toLocaleTimeString();
+                    row.innerHTML = `
+                        <td>${timestamp}</td>
+                        <td class="${type} capitalize">${type}</td>
+                        <td>${message}</td>
+                    `;
+                    if (statusTable.firstChild) {
+                        statusTable.insertBefore(row, statusTable.firstChild);
+                    } else {
+                        statusTable.appendChild(row);
+                    }
+                    const logTable = statusTable.closest('.log-table');
+                    if (logTable) {
+                        logTable.scrollTop = 0;
+                    }
+                } else {
+                    console.error('Log table (#status) not found.');
+                }
+            } catch (err) {
+                console.error('Logging error:', err);
+            }
+        }
+
+        // Clear Logs
+        function clearLogs() {
+            try {
+                if (elements.logTable) {
+                    elements.logTable.innerHTML = '';
+                }
+                logMessage('info', 'Logs cleared');
+            } catch (err) {
+                console.error('Clear logs error:', err);
+            }
+        }
+
+        // Toggle Logs Visibility
+        function toggleLogs() {
+            try {
+                const isHidden = elements.logSection.classList.toggle('hidden');
+                elements.toggleLogsButton.textContent = isHidden ? 'Show Logs' : 'Hide Logs';
+                elements.toggleLogsButton.setAttribute('aria-expanded', !isHidden);
+                elements.toggleLogsButton.setAttribute('aria-label', isHidden ? 'Show Logs' : 'Hide Logs');
+            } catch (err) {
+                console.error('Toggle logs error:', err);
+                logMessage('failure', `Toggle logs error: ${err.message}`);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEndpoint();
+            setInterval(checkTokenExpiration, 60000);
+            populateColumnCheckboxes();
+            logMessage('info', 'Application initialized.');
+            logMessage('info', 'Ready for authentication.');
+        });
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.tenantAuthButton.addEventListener("click", handleTenantAuth);
+        elements.endpointSelect.addEventListener("change", handleEndpointChange);
+        elements.searchButton.addEventListener("click", handleSearch);
+        elements.clearLogsButton.addEventListener("click", clearLogs);
+        elements.toggleLogsButton.addEventListener("click", toggleLogs);
+        elements.password.addEventListener('input', () => {
+            elements.password.value = elements.password.value.replace(/\s/g, '');
+        });
+        elements.tenantPassword.addEventListener('input', () => {
+            elements.tenantPassword.value = elements.tenantPassword.value.replace(/\s/g, '');
+        });
+        elements.username.addEventListener('focus', () => {
+            if (elements.username.value === elements.username.placeholder) {
+                elements.username.value = "";
+            }
+        });
+        elements.password.addEventListener('focus', () => {
+            if (elements.password.value === elements.password.placeholder) {
+                elements.password.value = "";
+            }
+        });
+        window.addEventListener('online', () => {
+            logMessage('success', 'Back online!');
+        });
+        window.addEventListener('offline', () => {
+            logMessage('failure', 'No internet connection.');
+        });
+
+        // Populate Column Checkboxes
+        function populateColumnCheckboxes() {
+            elements.columnCheckboxes.innerHTML = '';
+            allEmailFields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `col-${field}`;
+                checkbox.value = field;
+                checkbox.checked = ['to', 'header', 'status', 'date', 'shouldRetry'].includes(field);
+                const label = document.createElement('label');
+                label.htmlFor = `col-${field}`;
+                label.textContent = field;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                elements.columnCheckboxes.appendChild(div);
+            });
+            logMessage('info', 'Column checkboxes populated.');
+        }
+
+        // Select/Unselect All Columns
+        function selectAllColumns() {
+            document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
+            logMessage('info', 'All columns selected.');
+        }
+
+        function unselectAllColumns() {
+            document.querySelectorAll('#columnCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+            logMessage('info', 'All columns unselected.');
+        }
+
+        // Authentication (Initial Sign-In)
+        async function handleAuth() {
+            const username = sanitizeInput(elements.username.value.trim());
+            const password = sanitizeInput(elements.password.value.trim());
+            selectedEndpoint = sanitizeInput(elements.endpointUrl.value.trim());
+            tenantId = sanitizeInput(elements.tenantId.value.trim());
+
+            if (!selectedEndpoint || !tenantId) {
+                elements.authError.textContent = "Please enter both endpoint URL and tenant ID.";
+                logMessage('failure', 'Authentication failed: Missing endpoint URL or tenant ID.');
+                return;
+            }
+
+            if (!username || !password) {
+                elements.authError.textContent = "Please enter both username and password.";
+                logMessage('failure', 'Authentication failed: Missing username or password.');
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50 || tenantId.length > 50 || selectedEndpoint.length > 200) {
+                elements.authError.textContent = "Input too long (max 50 for username/password/tenant, 200 for URL).";
+                logMessage('failure', 'Authentication failed: Input too long.');
+                return;
+            }
+
+            if (!selectedEndpoint.match(/^https?:\/\/[^\s/$.?#].[^\s]*$/)) {
+                elements.authError.textContent = "Invalid endpoint URL format.";
+                logMessage('failure', 'Authentication failed: Invalid endpoint URL format.');
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.classList.remove('hidden');
+            elements.authError.textContent = '';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', "Successfully signed in!");
+                    elements.authForm.classList.add('hidden');
+                    elements.searchFormContainer.classList.remove('hidden');
+                    saveEndpoint();
+                    await populateEndpointDropdown();
+                } else {
+                    const error = await response.json();
+                    elements.authError.textContent = `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                    logMessage('failure', `Authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`);
+                }
+            } catch (err) {
+                elements.authError.textContent = `Connection error: ${err.message}`;
+                logMessage('failure', `Authentication error: ${err.message}`);
+            } finally {
+                elements.authLoading.classList.add('hidden');
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        // Handle Endpoint Change
+        function handleEndpointChange() {
+            const value = elements.endpointSelect.value;
+            if (value) {
+                [selectedEndpoint, tenantId] = value.split("|");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.searchForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                elements.tenantUsername.value = "";
+                elements.tenantPassword.value = "";
+                logMessage('info', `Selected tenant: ${tenantId}. Please authenticate.`);
+            } else {
+                selectedEndpoint = null;
+                tenantId = null;
+                okapiToken = null;
+                tokenExpiration = null;
+                allEmails = [];
+                elements.tenantAuthForm.classList.add('hidden');
+                elements.tenantAuthButtonContainer.classList.add('hidden');
+                elements.searchForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                elements.resultsHeader.innerHTML = '';
+                elements.resultsBody.innerHTML = '';
+                logMessage('info', 'No tenant selected.');
+            }
+        }
+
+        // Authenticate Selected Tenant
+        async function handleTenantAuth() {
+            const username = sanitizeInput(elements.tenantUsername.value.trim());
+            const password = sanitizeInput(elements.tenantPassword.value.trim());
+
+            if (!username || !password) {
+                elements.searchError.textContent = "Please enter both username and password for the tenant.";
+                logMessage('failure', 'Tenant authentication failed: Missing username or password.');
+                return;
+            }
+
+            if (username.length > 50 || password.length > 50) {
+                elements.searchError.textContent = "Username or password too long (max 50 characters).";
+                logMessage('failure', 'Tenant authentication failed: Username or password too long.');
+                return;
+            }
+
+            toggleButtonState(true, 'tenantAuth');
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Authenticating tenant...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', `Successfully authenticated for tenant: ${tenantId}`);
+                    elements.tenantAuthForm.classList.add('hidden');
+                    elements.tenantAuthButtonContainer.classList.add('hidden');
+                    elements.searchForm.classList.remove('hidden');
+                } else {
+                    const error = await response.json();
+                    elements.searchError.textContent = `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                    logMessage('failure', `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`);
+                }
+            } catch (err) {
+                elements.searchError.textContent = `Tenant authentication error: ${err.message}`;
+                logMessage('failure', `Tenant authentication error: ${err.message}`);
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+                toggleButtonState(false, 'tenantAuth');
+            }
+        }
+
+        // Populate Endpoint Dropdown
+        async function populateEndpointDropdown() {
+            if (!isTokenValid()) {
+                logMessage('failure', 'Session expired. Please authenticate again.');
+                return;
+            }
+
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Fetching tenants...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?query=module==KwokyWorks%20and%20code==applications_configuration`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const config = data.configs?.[0];
+                    if (config && config.value) {
+                        const parsedValue = JSON.parse(config.value);
+                        const endpoints = parsedValue.endpoints || [];
+                        endpoints.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                        elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                        endpoints.forEach(endpoint => {
+                            const option = document.createElement("option");
+                            option.value = `${endpoint.url}|${endpoint.tenant}`;
+                            option.textContent = endpoint.name;
+                            elements.endpointSelect.appendChild(option);
+                        });
+                        logMessage('success', `Loaded ${endpoints.length} tenants.`);
+                    } else {
+                        logMessage('failure', "No tenant configuration found.");
+                    }
+                } else {
+                    const status = response.status;
+                    logMessage('failure', `Failed to fetch tenant configuration (HTTP ${status}).`);
+                }
+            } catch (err) {
+                logMessage('failure', `Error fetching tenants: ${err.message}`);
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+            }
+        }
+
+        // Handle Search
+        async function handleSearch() {
+            if (!isTokenValid()) {
+                logMessage('failure', "Session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.searchForm.classList.add('hidden');
+                return;
+            }
+
+            const status = elements.emailStatus.value;
+            const shouldRetry = elements.shouldRetry.value;
+            const deliveryChannel = elements.deliveryChannel.value;
+            const recipient = sanitizeInput(elements.recipient.value.trim());
+            const header = sanitizeInput(elements.header.value.trim());
+            const dateStart = elements.dateStart.value;
+            const dateEnd = elements.dateEnd.value;
+            const limit = elements.limit.value;
+            const rangeStart = parseInt(elements.rangeStart.value) || 1;
+            const rangeEnd = parseInt(elements.rangeEnd.value) || limit;
+            const selectedColumns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+
+            if (!selectedColumns.length) {
+                elements.searchError.textContent = "Please select at least one column to display.";
+                logMessage('failure', 'Search failed: No columns selected.');
+                return;
+            }
+
+            toggleButtonState(true, 'search');
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Searching...';
+            elements.searchError.textContent = '';
+
+            let queryParts = [];
+            if (status !== 'all') queryParts.push(`status=="${status}"`);
+            if (shouldRetry !== 'all') queryParts.push(`shouldRetry==${shouldRetry}`);
+            if (deliveryChannel !== 'all') queryParts.push(`deliveryChannel=="${deliveryChannel}"`);
+            if (recipient) queryParts.push(`to=="${recipient}"`);
+            if (header) queryParts.push(`header=="${header}*"`);
+            if (dateStart) queryParts.push(`date>=${dateStart}T00:00:00.000+0000`);
+            if (dateEnd) queryParts.push(`date<=${dateEnd}T23:59:59.999+0000`);
+            const query = queryParts.length > 0 ? queryParts.join(' and ') : '';
+            const queryParam = query ? `query=${encodeURIComponent(query)}&` : '';
+
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/email?${queryParam}limit=${limit}`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (!response.ok) throw new Error(`Email fetch failed: ${await response.text()}`);
+                const data = await response.json();
+                allEmails = Array.isArray(data.emailEntity) ? data.emailEntity : [];
+                currentPage = 1;
+                logMessage('success', `Found ${allEmails.length} emails.`);
+                displayResults(allEmails, selectedColumns, rangeStart, rangeEnd);
+            } catch (error) {
+                logMessage('failure', `Search error: ${error.message}`);
+                allEmails = [];
+                displayResults(allEmails, selectedColumns, rangeStart, rangeEnd);
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+                toggleButtonState(false, 'search');
+            }
+        }
+
+        // Display Results
+        function displayResults(emails, columns, rangeStart, rangeEnd) {
+            elements.resultsHeader.innerHTML = '';
+            elements.resultsBody.innerHTML = '';
+            elements.resultsContainer.classList.add('hidden');
+            elements.paginationControls.classList.add('hidden');
+
+            emails = Array.isArray(emails) ? emails : [];
+
+            if (emails.length === 0) {
+                logMessage('failure', 'No emails found.');
+                return;
+            }
+
+            const startIdx = Math.max(0, rangeStart - 1);
+            const endIdx = Math.min(emails.length, rangeEnd) - 1;
+            const displayEmails = emails.slice(startIdx, endIdx + 1);
+
+            const headerRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            elements.resultsHeader.appendChild(headerRow);
+
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const paginatedEmails = displayEmails.slice(start, end);
+
+            paginatedEmails.forEach(email => {
+                const row = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    let value = getNestedValue(email, col);
+                    if (col === 'attachments' && Array.isArray(value)) {
+                        value = value.length ? `${value.length} attachment(s)` : 'None';
+                    } else if (col === 'body' && typeof value === 'string') {
+                        value = value.replace(/<[^>]+>/g, '').substring(0, 100) + (value.length > 100 ? '...' : '');
+                    } else if (Array.isArray(value)) {
+                        value = value.join(', ');
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
+                    td.textContent = value || '';
+                    row.appendChild(td);
+                });
+                elements.resultsBody.appendChild(row);
+            });
+
+            elements.resultsContainer.classList.remove('hidden');
+            elements.paginationControls.classList.remove('hidden');
+            updatePagination(displayEmails.length);
+            logMessage('info', `Displayed emails ${startIdx + 1}-${endIdx + 1} of ${emails.length}.`);
+        }
+
+        // Update Pagination
+        function updatePagination(totalItems) {
+            const totalPages = Math.ceil(totalItems / pageSize);
+            elements.pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalItems} items in range)`;
+            elements.paginationControls.querySelector('button:first-child').disabled = currentPage === 1;
+            elements.paginationControls.querySelector('button:nth-child(3)').disabled = currentPage === totalPages;
+            logMessage('info', `Pagination updated: Page ${currentPage} of ${totalPages}.`);
+        }
+
+        // Pagination Controls
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                const rangeStart = parseInt(elements.rangeStart.value) || 1;
+                const rangeEnd = parseInt(elements.rangeEnd.value) || allEmails.length;
+                displayResults(allEmails, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+                logMessage('info', `Navigated to previous page: ${currentPage}.`);
+            }
+        }
+
+        function nextPage() {
+            const rangeEnd = Math.min(parseInt(elements.rangeEnd.value) || allEmails.length, allEmails.length);
+            const totalPages = Math.ceil((rangeEnd - (parseInt(elements.rangeStart.value) || 1) + 1) / pageSize);
+            if (currentPage < totalPages) {
+                currentPage++;
+                const rangeStart = parseInt(elements.rangeStart.value) || 1;
+                displayResults(allEmails, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+                logMessage('info', `Navigated to next page: ${currentPage}.`);
+            }
+        }
+
+        function changePageSize() {
+            pageSize = parseInt(elements.pageSize.value);
+            currentPage = 1;
+            const rangeStart = parseInt(elements.rangeStart.value) || 1;
+            const rangeEnd = parseInt(elements.rangeEnd.value) || allEmails.length;
+            displayResults(allEmails, Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value), rangeStart, rangeEnd);
+            logMessage('info', `Page size changed to ${pageSize}.`);
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            const columns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+            const rangeStart = parseInt(elements.rangeStart.value) || 1;
+            const rangeEnd = parseInt(elements.rangeEnd.value) || allEmails.length;
+            const exportEmails = allEmails.slice(rangeStart - 1, rangeEnd);
+
+            let csv = columns.join(',') + '\n';
+            exportEmails.forEach(email => {
+                const row = columns.map(col => {
+                    let value = getNestedValue(email, col);
+                    if (col === 'attachments' && Array.isArray(value)) {
+                        value = value.length ? `${value.length} attachment(s)` : 'None';
+                    } else if (col === 'body' && typeof value === 'string') {
+                        value = value.replace(/<[^>]+>/g, '');
+                    } else if (Array.isArray(value)) {
+                        value = value.join(', ');
+                    } else if (typeof value === 'object' && value !== null) {
+                        value = JSON.stringify(value);
+                    }
+                    return `"${(value || '').toString().replace(/"/g, '""')}"`;
+                }).join(',');
+                csv += row + '\n';
+            });
+            downloadFile(csv, `emails_range_${rangeStart}-${rangeEnd}.csv`, 'text/csv');
+            logMessage('success', `Exported ${exportEmails.length} emails to CSV.`);
+        }
+
+        // Export to JSON
+        function exportToJSON() {
+            const columns = Array.from(document.querySelectorAll('#columnCheckboxes input:checked')).map(cb => cb.value);
+            const rangeStart = parseInt(elements.rangeStart.value) || 1;
+            const rangeEnd = parseInt(elements.rangeEnd.value) || allEmails.length;
+            const exportEmails = allEmails.slice(rangeStart - 1, rangeEnd);
+
+            const filteredEmails = exportEmails.map(email => {
+                const filtered = {};
+                columns.forEach(col => {
+                    const keys = col.split('.');
+                    let target = filtered;
+                    for (let i = 0; i < keys.length - 1; i++) {
+                        target[keys[i]] = target[keys[i]] || {};
+                        target = target[keys[i]];
+                    }
+                    let value = getNestedValue(email, col);
+                    if (col === 'attachments' && Array.isArray(value)) {
+                        value = value.length ? `${value.length} attachment(s)` : 'None';
+                    } else if (col === 'body' && typeof value === 'string') {
+                        value = value.replace(/<[^>]+>/g, '');
+                    }
+                    target[keys[keys.length - 1]] = value;
+                });
+                return filtered;
+            });
+            const json = JSON.stringify(filteredEmails, null, 2);
+            downloadFile(json, `emails_range_${rangeStart}-${rangeEnd}.json`, 'application/json');
+            logMessage('success', `Exported ${exportEmails.length} emails to JSON.`);
+        }
+
+        // Download File
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Get Nested Value
+        function getNestedValue(obj, path) {
+            if (!obj) return '';
+            return path.split('.').reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : ''), obj);
+        }
+
+        // Toggle Button State
+        function toggleButtonState(disable, formType) {
+            try {
+                if (formType === 'auth') {
+                    elements.authButton.disabled = disable;
+                } else if (formType === 'tenantAuth') {
+                    elements.tenantAuthButton.disabled = disable;
+                } else if (formType === 'search') {
+                    elements.searchButton.disabled = disable;
+                }
+            } catch (err) {
+                console.error('Toggle button state error:', err);
+                logMessage('failure', `Button state error: ${err.message}`);
+            }
+        }
+
+        // Token Validation
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                return false;
+            }
+            return true;
+        }
+
+        // Check Token Expiration
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                logMessage('failure', "Tenant session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.searchForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+            }
+        }
+
+        // Save Endpoint
+        function saveEndpoint() {
+            try {
+                const value = `${elements.endpointUrl.value}|${elements.tenantId.value}`;
+                localStorage.setItem('lastEndpoint', value);
+                logMessage('info', 'Endpoint saved to local storage.');
+            } catch (err) {
+                console.error('Save endpoint error:', err);
+                logMessage('failure', `Save endpoint error: ${err.message}`);
+            }
+        }
+
+        // Load Endpoint
+        function loadEndpoint() {
+            try {
+                const saved = localStorage.getItem('lastEndpoint');
+                if (saved) {
+                    const [url, tenant] = saved.split("|");
+                    elements.endpointUrl.value = url || elements.endpointUrl.placeholder;
+                    elements.tenantId.value = tenant || elements.tenantId.placeholder;
+                    logMessage('info', 'Loaded saved endpoint.');
+                }
+            } catch (err) {
+                console.error('Load endpoint error:', err);
+                logMessage('failure', `Load endpoint error: ${err.message}`);
+            }
+        }
+
+        // Fetch with Retry
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (err) {
+                    if (i === retries - 1) {
+                        logMessage('failure', `Fetch error after ${retries} retries: ${err.message}`);
+                        throw err;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Input Sanitization
+        function sanitizeInput(input) {
+            try {
+                const div = document.createElement('div');
+                div.textContent = input;
+                return div.innerHTML;
+            } catch (err) {
+                console.error('Sanitize input error:', err);
+                logMessage('failure', `Sanitize input error: ${err.message}`);
+                return input;
+            }
+        }
+    </script>
+</body>
+</html>
