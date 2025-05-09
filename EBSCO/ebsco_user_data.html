@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO User Data Generator and Import Utility</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .form-grid label {
+            color: #555;
+            font-weight: bold;
+        }
+        .form-grid input,
+        .form-grid select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .form-grid input[type="file"] {
+            padding: 6px;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button.primary {
+            background-color: #005d9c;
+            color: #fff;
+        }
+        button.primary:hover:not(:disabled) {
+            background-color: #003f6b;
+        }
+        button.danger {
+            background-color: #d11;
+            color: #fff;
+        }
+        button.danger:hover:not(:disabled) {
+            background-color: #a00;
+        }
+        button.secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #555;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .log-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .log-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .log-table th,
+        .log-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .log-table th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .log-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .info { color: #005d9c; }
+        .success { color: #006600; }
+        .failure { color: #d11; }
+        .warning { color: #e68a00; }
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #005d9c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #d11;
+            margin: 10px 0;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-header button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .log-header button:hover {
+            color: #003f6b;
+        }
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid #005d9c;
+            outline-offset: 2px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FOLIO User Data Generator and Import Utility</h1>
+
+        <!-- Authentication Form -->
+        <section id="authForm">
+            <h2>Login to Central Administrative Tenant</h2>
+            <div class="form-grid">
+                <label for="okapiUrl">Endpoint URL:</label>
+                <input type="url" id="okapiUrl" placeholder="e.g., https://okapi-demo2.folio.ebsco.com" value="https://okapi-demo2.folio.ebsco.com" maxlength="200" aria-required="true">
+
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001176" value="fs00001176" maxlength="50" aria-required="true">
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="loginButton" class="primary" aria-label="Login">Login</button>
+            </div>
+            <div id="authLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Authenticating...</span>
+            </div>
+            <div id="authError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Configuration Form -->
+        <section id="configForm" class="hidden">
+            <h2>Select and Authenticate with Target Tenant</h2>
+            <div class="form-grid">
+                <label for="endpointSelect">Target Tenant:</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="">Select a tenant</option>
+                </select>
+            </div>
+            <div id="tenantAuthForm" class="form-grid hidden">
+                <label for="tenantUsername">Tenant Username:</label>
+                <input type="text" id="tenantUsername" placeholder="Enter username for selected tenant" maxlength="50" aria-required="true">
+
+                <label for="tenantPassword">Tenant Password:</label>
+                <input type="password" id="tenantPassword" placeholder="Enter password for selected tenant" maxlength="50" aria-required="true">
+            </div>
+            <div id="tenantAuthButtonContainer" class="button-group hidden">
+                <button id="tenantAuthButton" class="primary" aria-label="Authenticate Tenant">Authenticate Tenant</button>
+            </div>
+            <div id="tenantConfigForm" class="form-grid hidden">
+                <label for="patronGroupId">Patron Group:</label>
+                <select id="patronGroupId" disabled aria-label="Select Patron Group">
+                    <option value="">Select a patron group</option>
+                </select>
+
+                <label for="preferredContactTypeId">Preferred Contact Type:</label>
+                <select id="preferredContactTypeId" disabled aria-label="Select Preferred Contact Type">
+                    <option value="">Select a contact type</option>
+                </select>
+
+                <label for="csvUpload">Upload CSV:</label>
+                <input type="file" id="csvUpload" accept=".csv" aria-label="Upload CSV File">
+            </div>
+            <div class="button-group">
+                <button id="deleteButton" class="danger" disabled aria-label="Delete Demo Users">Delete Demo Users</button>
+                <button id="insertButton" class="primary" disabled aria-label="Insert Demo Users">Insert Demo Users</button>
+                <button id="downloadCsvButton" class="secondary" aria-label="Download CSV">Download CSV</button>
+            </div>
+        </section>
+
+        <!-- Status and Logs Section -->
+        <section>
+            <div class="log-header">
+                <h2>Logs</h2>
+                <button id="clearLogsButton" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div id="configError" class="error" role="alert"></div>
+            <div id="configLoading" class="loading hidden" aria-live="polite"></div>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 16.67%;">Timestamp</th>
+                            <th style="width: 16.67%;">Type</th>
+                            <th style="width: 66.66%;">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status" aria-live="polite"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Dummy data for 10 users
+            let dummyData = [
+                { id: 1, username: "user1", firstName: "John", lastName: "Doe", email: "john.doe@example.com", barcode: "bc1001", externalSystemId: "ext1001", expirationDate: "2026-05-06" },
+                { id: 2, username: "user2", firstName: "Jane", lastName: "Smith", email: "jane.smith@example.com", barcode: "bc1002", externalSystemId: "ext1002", expirationDate: "2026-05-06" },
+                { id: 3, username: "user3", firstName: "Alice", lastName: "Johnson", email: "alice.j@example.com", barcode: "bc1003", externalSystemId: "ext1003", expirationDate: "2026-05-06" },
+                { id: 4, username: "user4", firstName: "Bob", lastName: "Brown", email: "bob.brown@example.com", barcode: "bc1004", externalSystemId: "ext1004", expirationDate: "2026-05-06" },
+                { id: 5, username: "user5", firstName: "Carol", lastName: "Davis", email: "carol.davis@example.com", barcode: "bc1005", externalSystemId: "ext1005", expirationDate: "2026-05-06" },
+                { id: 6, username: "user6", firstName: "David", lastName: "Wilson", email: "david.w@example.com", barcode: "bc1006", externalSystemId: "ext1006", expirationDate: "2026-05-06" },
+                { id: 7, username: "user7", firstName: "Emma", lastName: "Taylor", email: "emma.taylor@example.com", barcode: "bc1007", externalSystemId: "ext1007", expirationDate: "2026-05-06" },
+                { id: 8, username: "user8", firstName: "Frank", lastName: "Moore", email: "frank.moore@example.com", barcode: "bc1008", externalSystemId: "ext1008", expirationDate: "2026-05-06" },
+                { id: 9, username: "user9", firstName: "Grace", lastName: "Lee", email: "grace.lee@example.com", barcode: "bc1009", externalSystemId: "ext1009", expirationDate: "2026-05-06" },
+                { id: 10, username: "user10", firstName: "Henry", lastName: "Clark", email: "henry.clark@example.com", barcode: "bc1010", externalSystemId: "ext1010", expirationDate: "2026-05-06" }
+            ];
+
+            let authToken = null;
+            let selectedEndpoint = null;
+            let tenantId = null;
+            let folioConfig = {
+                patronGroup: null,
+                preferredContactType: null
+            };
+
+            const elements = {
+                authForm: document.getElementById("authForm"),
+                configForm: document.getElementById("configForm"),
+                okapiUrl: document.getElementById("okapiUrl"),
+                tenantId: document.getElementById("tenantId"),
+                username: document.getElementById("username"),
+                password: document.getElementById("password"),
+                loginButton: document.getElementById("loginButton"),
+                authLoading: document.getElementById("authLoading"),
+                authError: document.getElementById("authError"),
+                endpointSelect: document.getElementById("endpointSelect"),
+                tenantAuthForm: document.getElementById("tenantAuthForm"),
+                tenantUsername: document.getElementById("tenantUsername"),
+                tenantPassword: document.getElementById("tenantPassword"),
+                tenantAuthButton: document.getElementById("tenantAuthButton"),
+                tenantAuthButtonContainer: document.getElementById("tenantAuthButtonContainer"),
+                tenantConfigForm: document.getElementById("tenantConfigForm"),
+                patronGroupId: document.getElementById("patronGroupId"),
+                preferredContactTypeId: document.getElementById("preferredContactTypeId"),
+                csvUpload: document.getElementById("csvUpload"),
+                deleteButton: document.getElementById("deleteButton"),
+                insertButton: document.getElementById("insertButton"),
+                downloadCsvButton: document.getElementById("downloadCsvButton"),
+                configError: document.getElementById("configError"),
+                configLoading: document.getElementById("configLoading"),
+                status: document.getElementById("status"),
+                clearLogsButton: document.getElementById("clearLogsButton")
+            };
+
+            let tokenExpiration = null;
+
+            // Attach event listeners
+            elements.loginButton.addEventListener('click', authenticate);
+            elements.tenantAuthButton.addEventListener('click', handleTenantAuth);
+            elements.endpointSelect.addEventListener('change', handleEndpointChange);
+            elements.deleteButton.addEventListener('click', confirmDelete);
+            elements.insertButton.addEventListener('click', insertDemoUsers);
+            elements.downloadCsvButton.addEventListener('click', downloadCsv);
+            elements.clearLogsButton.addEventListener('click', clearLogs);
+            elements.password.addEventListener('input', () => {
+                elements.password.value = elements.password.value.replace(/\s/g, '');
+            });
+            elements.tenantPassword.addEventListener('input', () => {
+                elements.tenantPassword.value = elements.tenantPassword.value.replace(/\s/g, '');
+            });
+            elements.username.addEventListener('focus', () => {
+                if (elements.username.value === elements.username.placeholder) {
+                    elements.username.value = "";
+                }
+            });
+            elements.password.addEventListener('focus', () => {
+                if (elements.password.value === elements.password.placeholder) {
+                    elements.password.value = "";
+                }
+            });
+            elements.csvUpload.addEventListener('change', handleCsvUpload);
+            setInterval(checkTokenExpiration, 60000);
+
+            // Initialize saved endpoint
+            loadEndpoint();
+
+            // Handle Endpoint Change
+            function handleEndpointChange() {
+                if (!elements.tenantAuthButtonContainer || !elements.tenantAuthForm || !elements.tenantConfigForm) {
+                    logMessage('failure', 'Required DOM elements missing. Please reload the page.');
+                    return;
+                }
+
+                const value = elements.endpointSelect.value;
+                if (value) {
+                    [selectedEndpoint, tenantId] = value.split("|");
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    elements.tenantUsername.value = "";
+                    elements.tenantPassword.value = "";
+                    logMessage('info', `Selected tenant: ${tenantId}. Please authenticate.`);
+                } else {
+                    selectedEndpoint = null;
+                    tenantId = null;
+                    authToken = null;
+                    tokenExpiration = null;
+                    elements.tenantAuthForm.style.display = 'none';
+                    elements.tenantAuthButtonContainer.style.display = 'none';
+                    elements.tenantConfigForm.style.display = 'none';
+                    resetConfigForm();
+                    logMessage('info', 'No tenant selected.');
+                }
+            }
+
+            // Authenticate Selected Tenant
+            async function handleTenantAuth() {
+                const username = sanitizeInput(elements.tenantUsername.value.trim());
+                const password = sanitizeInput(elements.tenantPassword.value.trim());
+
+                if (!username || !password) {
+                    logMessage('failure', 'Please enter both username and password for the tenant.');
+                    return;
+                }
+
+                if (username.length > 50 || password.length > 50) {
+                    logMessage('failure', 'Username or password too long (max 50 characters).');
+                    return;
+                }
+
+                toggleButtonState(true, 'tenantAuth');
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Authenticating tenant...';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-okapi-tenant": tenantId
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (response.status === 201) {
+                        authToken = response.headers.get("x-okapi-token");
+                        tokenExpiration = Date.now() + (10 * 60 * 1000);
+                        logMessage('success', `Successfully authenticated for tenant: ${tenantId}`);
+                        elements.tenantAuthForm.style.display = 'none';
+                        elements.tenantAuthButtonContainer.style.display = 'none';
+                        elements.tenantConfigForm.style.display = 'grid';
+                        await fetchConfig();
+                    } else {
+                        const error = await response.json();
+                        logMessage('failure', `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`);
+                    }
+                } catch (err) {
+                    logMessage('failure', `Tenant authentication error: ${err.message}`);
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                    toggleButtonState(false, 'tenantAuth');
+                }
+            }
+
+            // Authenticate (Initial Sign-In)
+            async function authenticate() {
+                const username = sanitizeInput(elements.username.value.trim());
+                const password = sanitizeInput(elements.password.value.trim());
+                selectedEndpoint = sanitizeInput(elements.okapiUrl.value.trim());
+                tenantId = sanitizeInput(elements.tenantId.value.trim());
+
+                if (!selectedEndpoint || !tenantId) {
+                    elements.authError.textContent = "Please enter both OKAPI endpoint URL and tenant ID.";
+                    return;
+                }
+
+                if (!username || !password) {
+                    elements.authError.textContent = "Please enter both username and password.";
+                    return;
+                }
+
+                if (username.length > 50 || password.length > 50 || tenantId.length > 50 || selectedEndpoint.length > 200) {
+                    elements.authError.textContent = "Input too long (max 50 for username/password/tenant, 200 for URL).";
+                    return;
+                }
+
+                if (!selectedEndpoint.match(/^https?:\/\/[^\s/$.?#].[^\s]*$/)) {
+                    elements.authError.textContent = "Invalid OKAPI endpoint URL format.";
+                    return;
+                }
+
+                toggleButtonState(true, 'auth');
+                elements.authLoading.classList.remove('hidden');
+                elements.authError.textContent = '';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-okapi-tenant": tenantId
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (response.status === 201) {
+                        authToken = response.headers.get("x-okapi-token");
+                        tokenExpiration = Date.now() + (10 * 60 * 1000);
+                        logMessage('success', "Successfully signed in!");
+                        elements.authForm.style.display = "none";
+                        elements.configForm.style.display = "block";
+                        saveEndpoint();
+                        await populateEndpointDropdown();
+                    } else {
+                        const error = await response.json();
+                        elements.authError.textContent = `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                    }
+                } catch (err) {
+                    elements.authError.textContent = `Connection error: ${err.message}`;
+                } finally {
+                    elements.authLoading.classList.add('hidden');
+                    toggleButtonState(false, 'auth');
+                }
+            }
+
+            // Populate Endpoint Dropdown
+            async function populateEndpointDropdown() {
+                if (!isTokenValid()) return;
+
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Fetching tenants...';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?query=module==KwokyWorks%20and%20code==applications_configuration`, {
+                        headers: {
+                            "x-okapi-tenant": tenantId,
+                            "x-okapi-token": authToken
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        const config = data.configs?.[0];
+                        if (config && config.value) {
+                            const parsedValue = JSON.parse(config.value);
+                            const endpoints = parsedValue.endpoints || [];
+                            endpoints.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                            elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                            endpoints.forEach(endpoint => {
+                                const option = document.createElement("option");
+                                option.value = `${endpoint.url}|${endpoint.tenant}`;
+                                option.textContent = endpoint.name;
+                                elements.endpointSelect.appendChild(option);
+                            });
+                            logMessage('success', `Loaded ${endpoints.length} tenants.`);
+                        } else {
+                            logMessage('failure', "No tenant configuration found.");
+                        }
+                    } else {
+                        logMessage('failure', `Failed to fetch tenant configuration (HTTP ${response.status}).`);
+                    }
+                } catch (err) {
+                    logMessage('failure', `Error fetching tenants: ${err.message}`);
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                }
+            }
+
+            // Fetch Configuration (Patron Groups, Contact Types)
+            async function fetchConfig() {
+                if (!isTokenValid()) {
+                    logMessage('failure', "Please authenticate for the selected tenant.");
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Fetching configuration...';
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json'
+                };
+
+                const config = {
+                    patronGroups: [],
+                    contactTypes: []
+                };
+
+                try {
+                    // Fetch patron groups
+                    try {
+                        const patronGroupsResponse = await fetchWithRetry(`${selectedEndpoint}/groups?limit=1000`, { headers });
+                        if (!patronGroupsResponse.ok) {
+                            throw new Error(`Failed to fetch patron groups: ${patronGroupsResponse.status}`);
+                        }
+                        const patronGroupsData = await patronGroupsResponse.json();
+                        if (!Array.isArray(patronGroupsData.usergroups)) {
+                            throw new Error('Invalid patron groups response');
+                        }
+                        config.patronGroups = patronGroupsData.usergroups;
+                        logMessage('info', 'Available patron groups', config.patronGroups);
+                        if (!config.patronGroups.length) throw new Error('No patron groups found in the tenant.');
+                    } catch (error) {
+                        throw error;
+                    }
+
+                    // Fetch contact types
+                    try {
+                        const contactTypesResponse = await fetchWithRetry(`${selectedEndpoint}/addresstypes?limit=1000`, { headers });
+                        if (!contactTypesResponse.ok) {
+                            throw new Error(`Failed to fetch contact types: ${contactTypesResponse.status}`);
+                        }
+                        const contactTypesData = await contactTypesResponse.json();
+                        if (!Array.isArray(contactTypesData.addressTypes)) {
+                            throw new Error('Invalid contact types response');
+                        }
+                        config.contactTypes = contactTypesData.addressTypes;
+                        logMessage('info', 'Available contact types', config.contactTypes);
+                        if (!config.contactTypes.length) throw new Error('No contact types found in the tenant.');
+                    } catch (error) {
+                        throw error;
+                    }
+
+                    // Populate dropdowns
+                    populateDropdown('patronGroupId', config.patronGroups, 'id', 'group');
+                    populateDropdown('preferredContactTypeId', config.contactTypes, 'id', 'addressType');
+
+                    updateButtonStates(true);
+                    logMessage('success', 'Successfully fetched configuration.');
+                } catch (error) {
+                    elements.configError.textContent = `Error fetching configuration: ${error.message}.`;
+                    elements.configLoading.classList.add('hidden');
+                    resetConfigForm();
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                }
+            }
+
+            // Download dummy data as CSV
+            function downloadCsv() {
+                const headers = ['id', 'username', 'firstName', 'lastName', 'email', 'barcode', 'externalSystemId', 'expirationDate'];
+                const csvRows = [headers.join(',')];
+                dummyData.forEach(record => {
+                    const values = [
+                        record.id,
+                        `"${record.username}"`,
+                        `"${record.firstName}"`,
+                        `"${record.lastName}"`,
+                        `"${record.email}"`,
+                        `"${record.barcode}"`,
+                        `"${record.externalSystemId}"`,
+                        `"${record.expirationDate}"`
+                    ];
+                    csvRows.push(values.join(','));
+                });
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'folio_demo_users.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+                logMessage('success', 'Downloaded demo users as CSV');
+            }
+
+            // Handle CSV upload
+            async function handleCsvUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Processing CSV file...';
+
+                try {
+                    const text = await file.text();
+                    const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+                    if (rows.length < 1) throw new Error('CSV file is empty.');
+
+                    const headers = rows[0].split(',').map(h => h.trim());
+                    const expectedHeaders = ['id', 'username', 'firstName', 'lastName', 'email', 'barcode', 'externalSystemId', 'expirationDate'];
+                    if (!expectedHeaders.every((h, i) => h === headers[i])) {
+                        throw new Error('Invalid CSV headers. Expected: ' + expectedHeaders.join(', '));
+                    }
+
+                    const newData = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const values = rows[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length !== headers.length) {
+                            throw new Error(`Invalid number of columns in row ${i + 1}.`);
+                        }
+                        const id = parseInt(values[0]);
+                        if (isNaN(id)) throw new Error(`Invalid ID in row ${i + 1}.`);
+                        if (!isValidEmail(values[4])) throw new Error(`Invalid email in row ${i + 1}: ${values[4]}`);
+                        if (!isValidDate(values[7])) throw new Error(`Invalid expiration date in row ${i + 1}: ${values[7]}`);
+                        newData.push({
+                            id,
+                            username: values[1],
+                            firstName: values[2],
+                            lastName: values[3],
+                            email: values[4],
+                            barcode: values[5],
+                            externalSystemId: values[6],
+                            expirationDate: values[7]
+                        });
+                    }
+
+                    if (newData.length === 0) throw new Error('No valid data rows found in CSV.');
+                    dummyData = newData;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('success', `Uploaded CSV with ${newData.length} user records`, newData.map(d => ({ name: `User ${d.username}` })));
+                } catch (error) {
+                    elements.configError.textContent = `Error processing CSV: ${error.message}`;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('failure', 'Failed to process CSV', [{ name: error.message }]);
+                }
+
+                event.target.value = '';
+            }
+
+            // Validate ISO 8601 date format
+            function isValidDate(dateString) {
+                if (!dateString || dateString.trim() === '') return true;
+                const iso8601 = /^\d{4}-\d{2}-\d{2}$/;
+                return iso8601.test(dateString);
+            }
+
+            // Validate email format
+            function isValidEmail(email) {
+                if (!email || email.trim() === '') return true;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            // Log message to table
+            function logMessage(type, message, items = []) {
+                const statusTable = elements.status;
+                const row = document.createElement('tr');
+                const timestamp = new Date().toLocaleTimeString();
+                const itemText = Array.isArray(items) && items.length > 0
+                    ? items.map(i => i.name ? `${i.name} (${i.id || 'no-id'})` : JSON.stringify(i)).join(', ')
+                    : 'None';
+                row.innerHTML = `
+                    <td>${timestamp}</td>
+                    <td class="${type} capitalize">${type}</td>
+                    <td>${message}: ${itemText}</td>
+                `;
+                statusTable.prepend(row);
+            }
+
+            // Clear logs
+            function clearLogs() {
+                elements.status.innerHTML = '';
+                logMessage('info', 'Logs cleared');
+            }
+
+            // Update button states
+            function updateButtonStates(loggedIn) {
+                elements.deleteButton.disabled = !loggedIn;
+                elements.insertButton.disabled = !loggedIn;
+            }
+
+            // Populate dropdown with options
+            function populateDropdown(selectId, items, valueKey, labelKey) {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '';
+                if (!Array.isArray(items) || items.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No options available';
+                    select.appendChild(option);
+                    select.disabled = true;
+                    return;
+                }
+                items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item[valueKey];
+                    option.textContent = item[labelKey] + ` (${item[valueKey]})`;
+                    select.appendChild(option);
+                });
+                select.disabled = false;
+            }
+
+            // Confirm deletion
+            function confirmDelete() {
+                if (confirm('Are you sure you want to delete all demo users? This action cannot be undone.')) {
+                    deleteDemoUsers();
+                }
+            }
+
+            // Delete demo users
+            async function deleteDemoUsers() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Deleting demo users...';
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json'
+                };
+
+                try {
+                    // Use CQL query with = for wildcard matching
+                    const query = encodeURIComponent('personal.firstName=Demo*');
+                    const queryUrl = `${selectedEndpoint}/users?query=${query}&limit=1000`;
+                    logMessage('info', `Querying users with URL: ${queryUrl}`);
+
+                    const usersResponse = await fetchWithRetry(queryUrl, { headers });
+                    if (!usersResponse.ok) {
+                        throw new Error(`Failed to query users: ${usersResponse.status} ${usersResponse.statusText}`);
+                    }
+
+                    const usersData = await usersResponse.json();
+                    if (!usersData || !Array.isArray(usersData.users)) {
+                        throw new Error('Invalid users response: users array not found');
+                    }
+
+                    const users = usersData.users;
+                    logMessage('info', `Found ${users.length} existing demo users`, users.map(u => ({ name: u.username, id: u.id })));
+
+                    if (users.length === 0) {
+                        elements.configLoading.classList.add('hidden');
+                        logMessage('info', 'No demo users found to delete');
+                        return;
+                    }
+
+                    for (const user of users) {
+                        try {
+                            // Verify user exists
+                            const userCheckResponse = await fetchWithRetry(`${selectedEndpoint}/users/${user.id}`, { headers });
+                            if (!userCheckResponse.ok) {
+                                throw new Error(`User ${user.id} not found or inaccessible: ${userCheckResponse.status} ${userCheckResponse.statusText}`);
+                            }
+
+                            // Attempt to delete user with Accept: text/plain
+                            const deleteUrl = `${selectedEndpoint}/users/${user.id}`;
+                            logMessage('info', `Sending DELETE request to: ${deleteUrl}`);
+                            const deleteHeaders = {
+                                ...headers,
+                                'Accept': 'text/plain'
+                            };
+                            const deleteResponse = await fetchWithRetry(deleteUrl, {
+                                method: 'DELETE',
+                                headers: deleteHeaders
+                            });
+
+                            if (!deleteResponse.ok) {
+                                let errorMessage = `Failed to delete user ${user.id}: ${deleteResponse.status} ${deleteResponse.statusText}`;
+                                try {
+                                    const errorText = await deleteResponse.text();
+                                    errorMessage += ` - ${errorText || 'No additional error details'}`;
+                                } catch (e) {
+                                    // If response body is not readable, use status text
+                                }
+                                throw new Error(errorMessage);
+                            }
+
+                            logMessage('info', `Deleted user`, [{ name: user.username, id: user.id }]);
+                        } catch (err) {
+                            logMessage('failure', `Error deleting user ${user.id}: ${err.message}`, [{ name: err.message }]);
+                        }
+                    }
+
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('success', 'Successfully deleted demo users');
+                } catch (err) {
+                    elements.configError.textContent = `Error during deletion: ${err.message}`;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('failure', `Deletion error: ${err.message}`);
+                }
+            }
+
+            // Insert demo users
+            async function insertDemoUsers() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Inserting demo users...';
+
+                const selectedConfig = {
+                    patronGroup: elements.patronGroupId.value,
+                    preferredContactType: elements.preferredContactTypeId.value
+                };
+
+                if (!Object.values(selectedConfig).every(v => v)) {
+                    elements.configError.textContent = 'Please select all required types from the dropdowns.';
+                    elements.configLoading.classList.add('hidden');
+                    return;
+                }
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+
+                const selectedUUIDs = [
+                    { name: `patronGroup: ${selectedConfig.patronGroup}` },
+                    { name: `preferredContactType: ${selectedConfig.preferredContactType}` }
+                ];
+                logMessage('info', 'Selected UUIDs', selectedUUIDs);
+
+                for (const record of dummyData) {
+                    try {
+                        const user = {
+                            id: crypto.randomUUID(),
+                            username: record.username,
+                            active: true,
+                            type: "patron",
+                            patronGroup: selectedConfig.patronGroup,
+                            barcode: record.barcode,
+                            externalSystemId: record.externalSystemId,
+                            expirationDate: record.expirationDate,
+                            personal: {
+                                firstName: `Demo ${record.firstName}`,
+                                lastName: record.lastName,
+                                email: record.email,
+                                preferredContactTypeId: selectedConfig.preferredContactType
+                            }
+                        };
+                        const userResponse = await fetchWithRetry(`${selectedEndpoint}/users`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(user)
+                        });
+                        if (!userResponse.ok) {
+                            const errorData = await userResponse.json().catch(() => ({}));
+                            throw new Error(`Failed to create user: ${userResponse.status} ${JSON.stringify(errorData)}`);
+                        }
+                        logMessage('info', `Created user ${record.username}`, [{ name: user.id }]);
+                        logMessage('success', `Successfully created user ${record.username}`);
+                    } catch (error) {
+                        logMessage('failure', `Failed to create user ${record.username}`, [{ name: error.message }]);
+                    }
+                }
+
+                elements.configLoading.classList.add('hidden');
+            }
+
+            // Token Validation
+            function isTokenValid() {
+                if (!authToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                    return false;
+                }
+                return true;
+            }
+
+            // Reset Configuration Form
+            function resetConfigForm() {
+                const dropdowns = ['patronGroupId', 'preferredContactTypeId'];
+                dropdowns.forEach(id => {
+                    const select = document.getElementById(id);
+                    select.innerHTML = `<option value="">Select a ${id.replace(/Id$/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}</option>`;
+                    select.disabled = true;
+                });
+                updateButtonStates(false);
+                elements.configError.textContent = '';
+            }
+
+            // Reset Session
+            function resetSession(message) {
+                authToken = null;
+                tokenExpiration = null;
+                selectedEndpoint = null;
+                tenantId = null;
+                elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                elements.tenantAuthForm.style.display = 'none';
+                elements.tenantAuthButtonContainer.style.display = 'none';
+                elements.tenantConfigForm.style.display = 'none';
+                elements.authForm.style.display = 'block';
+                elements.configForm.style.display = 'none';
+                resetConfigForm();
+                logMessage('failure', message);
+            }
+
+            // Toggle Button State
+            function toggleButtonState(disable, formType) {
+                if (formType === 'auth') {
+                    elements.loginButton.disabled = disable;
+                } else if (formType === 'tenantAuth') {
+                    elements.tenantAuthButton.disabled = disable;
+                }
+            }
+
+            // Check Token Expiration
+            function checkTokenExpiration() {
+                if (authToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                    logMessage('failure', 'Tenant session expired. Please authenticate again.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                }
+            }
+
+            // Save Endpoint
+            function saveEndpoint() {
+                const value = `${elements.okapiUrl.value}|${elements.tenantId.value}`;
+                localStorage.setItem('lastEndpoint', value);
+            }
+
+            // Load Endpoint
+            function loadEndpoint() {
+                const saved = localStorage.getItem('lastEndpoint');
+                if (saved) {
+                    const [url, tenant] = saved.split("|");
+                    elements.okapiUrl.value = url || elements.okapiUrl.placeholder;
+                    elements.tenantId.value = tenant || elements.tenantId.placeholder;
+                }
+            }
+
+            // Fetch with Retry
+            async function fetchWithRetry(url, options, retries = 3) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        return response;
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                    }
+                }
+            }
+
+            // Input Sanitization
+            function sanitizeInput(input) {
+                const div = document.createElement('div');
+                div.textContent = input;
+                return div.innerHTML;
+            }
+
+            // Network status handlers
+            window.addEventListener('online', () => {
+                logMessage('success', 'Back online!');
+            });
+            window.addEventListener('offline', () => {
+                logMessage('failure', 'No internet connection.');
+            });
+        });
+    </script>
+</body>
+</html>
