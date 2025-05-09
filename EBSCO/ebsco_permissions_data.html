@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Permission Set Generator and Import Utility</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .form-grid label {
+            color: #555;
+            font-weight: bold;
+        }
+        .form-grid input,
+        .form-grid select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .form-grid input[type="file"] {
+            padding: 6px;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button.primary {
+            background-color: #005d9c;
+            color: #fff;
+        }
+        button.primary:hover:not(:disabled) {
+            background-color: #003f6b;
+        }
+        button.danger {
+            background-color: #d11;
+            color: #fff;
+        }
+        button.danger:hover:not(:disabled) {
+            background-color: #a00;
+        }
+        button.secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #555;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .log-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .log-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .log-table th,
+        .log-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .log-table th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .log-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .info { color: #005d9c; }
+        .success { color: #006600; }
+        .failure { color: #d11; }
+        .warning { color: #e68a00; }
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #005d9c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #d11;
+            margin: 10px 0;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-header button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .log-header button:hover {
+            color: #003f6b;
+        }
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid #005d9c;
+            outline-offset: 2px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FOLIO Permission Set Generator and Import Utility</h1>
+
+        <!-- Authentication Form -->
+        <section id="authForm">
+            <h2>Login to Central Administrative Tenant</h2>
+            <div class="form-grid">
+                <label for="okapiUrl">Endpoint URL:</label>
+                <input type="url" id="okapiUrl" placeholder="e.g., https://okapi-demo2.folio.ebsco.com" value="https://okapi-demo2.folio.ebsco.com" maxlength="200" aria-required="true">
+
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001176" value="fs00001176" maxlength="50" aria-required="true">
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="loginButton" class="primary" aria-label="Login">Login</button>
+            </div>
+            <div id="authLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Authenticating...</span>
+            </div>
+            <div id="authError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Configuration Form -->
+        <section id="configForm" class="hidden">
+            <h2>Select and Authenticate with Target Tenant</h2>
+            <div class="form-grid">
+                <label for="endpointSelect">Target Tenant:</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="">Select a tenant</option>
+                </select>
+            </div>
+            <div id="tenantAuthForm" class="form-grid hidden">
+                <label for="tenantUsername">Tenant Username:</label>
+                <input type="text" id="tenantUsername" placeholder="Enter username for selected tenant" maxlength="50" aria-required="true">
+
+                <label for="tenantPassword">Tenant Password:</label>
+                <input type="password" id="tenantPassword" placeholder="Enter password for selected tenant" maxlength="50" aria-required="true">
+            </div>
+            <div id="tenantAuthButtonContainer" class="button-group hidden">
+                <button id="tenantAuthButton" class="primary" aria-label="Authenticate Tenant">Authenticate Tenant</button>
+            </div>
+            <div id="tenantConfigForm" class="form-grid hidden">
+                <label for="csvUpload">Upload CSV:</label>
+                <input type="file" id="csvUpload" accept=".csv" aria-label="Upload CSV File">
+            </div>
+            <div class="button-group">
+                <button id="deleteButton" class="danger" disabled aria-label="Delete Demo Permission Sets">Delete Demo Permission Sets</button>
+                <button id="insertButton" class="primary" disabled aria-label="Insert Demo Permission Sets">Insert Demo Permission Sets</button>
+                <button id="downloadCsvButton" class="secondary" aria-label="Download Demo CSV">Download Demo CSV</button>
+                <button id="downloadExistingCsvButton" class="secondary" disabled aria-label="Download Existing Permission Sets">Download Existing Permission Sets</button>
+            </div>
+        </section>
+
+        <!-- Status and Logs Section -->
+        <section>
+            <div class="log-header">
+                <h2>Logs</h2>
+                <button id="clearLogsButton" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div id="configError" class="error" role="alert"></div>
+            <div id="configLoading" class="loading hidden" aria-live="polite"></div>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 16.67%;">Timestamp</th>
+                            <th style="width: 16.67%;">Type</th>
+                            <th style="width: 66.66%;">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status" aria-live="polite"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Dynamic demo data based on provided CSV
+            let demoData = [];
+            let authToken = null;
+            let selectedEndpoint = null;
+            let tenantId = null;
+
+            const elements = {
+                authForm: document.getElementById("authForm"),
+                configForm: document.getElementById("configForm"),
+                okapiUrl: document.getElementById("okapiUrl"),
+                tenantId: document.getElementById("tenantId"),
+                username: document.getElementById("username"),
+                password: document.getElementById("password"),
+                loginButton: document.getElementById("loginButton"),
+                authLoading: document.getElementById("authLoading"),
+                authError: document.getElementById("authError"),
+                endpointSelect: document.getElementById("endpointSelect"),
+                tenantAuthForm: document.getElementById("tenantAuthForm"),
+                tenantUsername: document.getElementById("tenantUsername"),
+                tenantPassword: document.getElementById("tenantPassword"),
+                tenantAuthButton: document.getElementById("tenantAuthButton"),
+                tenantAuthButtonContainer: document.getElementById("tenantAuthButtonContainer"),
+                tenantConfigForm: document.getElementById("tenantConfigForm"),
+                csvUpload: document.getElementById("csvUpload"),
+                deleteButton: document.getElementById("deleteButton"),
+                insertButton: document.getElementById("insertButton"),
+                downloadCsvButton: document.getElementById("downloadCsvButton"),
+                downloadExistingCsvButton: document.getElementById("downloadExistingCsvButton"),
+                configError: document.getElementById("configError"),
+                configLoading: document.getElementById("configLoading"),
+                status: document.getElementById("status"),
+                clearLogsButton: document.getElementById("clearLogsButton")
+            };
+
+            let tokenExpiration = null;
+
+            // Attach event listeners
+            elements.loginButton.addEventListener('click', authenticate);
+            elements.tenantAuthButton.addEventListener('click', handleTenantAuth);
+            elements.endpointSelect.addEventListener('change', handleEndpointChange);
+            elements.deleteButton.addEventListener('click', confirmDelete);
+            elements.insertButton.addEventListener('click', insertDemoPermissionSets);
+            elements.downloadCsvButton.addEventListener('click', downloadCsv);
+            elements.downloadExistingCsvButton.addEventListener('click', downloadExistingPermissionSets);
+            elements.clearLogsButton.addEventListener('click', clearLogs);
+            elements.password.addEventListener('input', () => {
+                elements.password.value = elements.password.value.replace(/\s/g, '');
+            });
+            elements.tenantPassword.addEventListener('input', () => {
+                elements.tenantPassword.value = elements.tenantPassword.value.replace(/\s/g, '');
+            });
+            elements.username.addEventListener('focus', () => {
+                if (elements.username.value === elements.username.placeholder) {
+                    elements.username.value = "";
+                }
+            });
+            elements.password.addEventListener('focus', () => {
+                if (elements.password.value === elements.password.placeholder) {
+                    elements.password.value = "";
+                }
+            });
+            elements.csvUpload.addEventListener('change', handleCsvUpload);
+            setInterval(checkTokenExpiration, 60000);
+
+            // Initialize saved endpoint
+            loadEndpoint();
+
+            // Handle Endpoint Change
+            function handleEndpointChange() {
+                if (!elements.tenantAuthButtonContainer || !elements.tenantAuthForm || !elements.tenantConfigForm) {
+                    logMessage('failure', 'Required DOM elements missing. Please reload the page.');
+                    return;
+                }
+
+                const value = elements.endpointSelect.value;
+                if (value) {
+                    [selectedEndpoint, tenantId] = value.split("|");
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    elements.tenantUsername.value = "";
+                    elements.tenantPassword.value = "";
+                    logMessage('info', `Selected tenant: ${tenantId}. Please authenticate.`);
+                } else {
+                    selectedEndpoint = null;
+                    tenantId = null;
+                    authToken = null;
+                    tokenExpiration = null;
+                    demoData = [];
+                    elements.tenantAuthForm.style.display = 'none';
+                    elements.tenantAuthButtonContainer.style.display = 'none';
+                    elements.tenantConfigForm.style.display = 'none';
+                    resetConfigForm();
+                    logMessage('info', 'No tenant selected.');
+                }
+            }
+
+            // Authenticate Selected Tenant
+            async function handleTenantAuth() {
+                const username = sanitizeInput(elements.tenantUsername.value.trim());
+                const password = sanitizeInput(elements.tenantPassword.value.trim());
+
+                if (!username || !password) {
+                    logMessage('failure', 'Please enter both username and password for the tenant.');
+                    return;
+                }
+
+                if (username.length > 50 || password.length > 50) {
+                    logMessage('failure', 'Username or password too long (max 50 characters).');
+                    return;
+                }
+
+                toggleButtonState(true, 'tenantAuth');
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Authenticating tenant...';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-okapi-tenant": tenantId
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (response.status === 201) {
+                        authToken = response.headers.get("x-okapi-token");
+                        tokenExpiration = Date.now() + (10 * 60 * 1000);
+                        logMessage('success', `Successfully authenticated for tenant: ${tenantId}`);
+                        elements.tenantAuthForm.style.display = 'none';
+                        elements.tenantAuthButtonContainer.style.display = 'none';
+                        elements.tenantConfigForm.style.display = 'grid';
+                        updateButtonStates(true);
+                        await fetchTenantPermissions();
+                    } else {
+                        let errorMessage = 'Invalid credentials';
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.errors?.[0]?.message || `HTTP ${response.status}`;
+                        } catch (e) {
+                            // Response body not readable
+                        }
+                        logMessage('failure', `Tenant authentication failed: ${errorMessage}`);
+                        elements.configError.textContent = `Authentication failed: ${errorMessage}. Please verify tenant ID and credentials.`;
+                    }
+                } catch (err) {
+                    logMessage('failure', `Tenant authentication error: ${err.message}`);
+                    elements.configError.textContent = `Connection error: ${err.message}. Check the endpoint URL and network.`;
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                    toggleButtonState(false, 'tenantAuth');
+                }
+            }
+
+            // Generate Demo Permission Sets from CSV Data
+            async function fetchTenantPermissions() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    return;
+                }
+
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Generating demo permission sets...';
+                try {
+                    // Static permission sets from provided CSV
+                    const csvPermissionSets = [
+                        
+                        {
+                            id: 1,
+                            permissionName: "role-circ-manager",
+                            displayName: "role-circ-manager",
+                            description: "",
+                            subPermissions: "ui-checkin.all,ui-checkout.all,ui-plugin-create-inventory-records.create,ui-users.fee-fine-actions.all,ui-inventory.instance.view,ui-inventory.item.mark-as-missing.execute,ui-notes.item.assign-unassign.execute,ui-notes.item.create,ui-notes.item.delete,ui-notes.item.edit,ui-notes.item.view,ui-requests.all,ui-tags.view,ui-tags.all,ui-users.perms.edit,ui-users.user-service-points.edit,ui-users.create,ui-users.feesfines.actions.all,ui-users.patron-blocks.all,ui-users.proxies.all,ui-users.open-transactions.view,ui-users.delete,ui-users.lost-items-requiring-actual-cost.execute,ui-users.edit,ui-users.perms.view,ui-users.proxies.view,ui-users.user-service-points.view,ui-users.view,ui-users.cash-drawer-report.execute,ui-users.financial-transaction-report.execute,ui-users.manual-process-refunds-report.execute,ui-users.reset.password,ui-users.loans-due-date.edit,ui-users.loans-claim-item-returned.execute,ui-users.loans-declare-item-lost.execute,ui-users.loans-declare-claimed-returned-item-as-missing.execute,ui-users.loans-renew-override.create,ui-users.loans-renew.create,ui-users.loans.all,ui-users.loans-add-info.create,ui-users.requests.all"
+                        },
+                        {
+                            id: 2,
+                            permissionName: "role-circ-staff",
+                            displayName: "role-circ-staff",
+                            description: "",
+                            subPermissions: "ui-checkin.all,ui-checkout.all,ui-plugin-create-inventory-records.create,ui-inventory.instance.view,ui-inventory.item.mark-as-missing.execute,ui-notes.item.assign-unassign.execute,ui-notes.item.create,ui-notes.item.delete,ui-notes.item.edit,ui-notes.item.view,ui-requests.all,ui-tags.view,ui-tags.all,ui-users.perms.edit,ui-users.user-service-points.edit,ui-users.create,ui-users.feesfines.actions.all,ui-users.patron-blocks.all,ui-users.proxies.all,ui-users.edit,ui-users.perms.view,ui-users.proxies.view,ui-users.user-service-points.view,ui-users.reset.password,ui-users.loans-due-date.edit,ui-users.loans-claim-item-returned.execute,ui-users.loans-declare-item-lost.execute,ui-users.loans-declare-claimed-returned-item-as-missing.execute,ui-users.loans-renew-override.create,ui-users.loans.all,ui-users.loans-add-info.create,ui-users.requests.all,ui-users.settings.view"
+                        },
+                        {
+                            id: 3,
+                            permissionName: "role-circ-student",
+                            displayName: "role-circ-student",
+                            description: "",
+                            subPermissions: "ui-checkin.all,ui-checkout.circulation.execute,ui-circulation-log.log-event.view,ui-plugin-create-inventory-records.create,ui-users.manual-pay.execute,ui-inventory.instance.view,ui-notes.item.assign-unassign.execute,ui-notes.item.create,ui-notes.item.view,ui-requests.create,ui-tags.view,ui-users.feesfines.view,ui-users.perms.view,ui-users.proxies.view,ui-users.user-service-points.view,ui-users.view,ui-users.loans-renew.create,ui-users.loans.view,ui-users.requests.all"
+                        },
+                        {
+                            id: 4,
+                            permissionName: "role-copy-cataloger",
+                            displayName: "role-copy-cataloger",
+                            description: "",
+                            subPermissions: "ui-inventory.items.mark-withdrawn.execute,ui-inventory.holdings.move,ui-inventory.item.move,ui-inventory.instance.edit,ui-inventory.holdings.delete,ui-inventory.item.delete,ui-inventory.item.mark-as-missing.execute,ui-inventory.settings.list.view,ui-data-export.settings.view,ui-data-import.settings.manage,ui-data-export.view,ui-quick-marc.quick-marc-editor.all"
+                        },
+                        {
+                            id: 5,
+                            permissionName: "role-checkout-all",
+                            displayName: "role-checkout-all",
+                            description: "",
+                            subPermissions: "ui-checkout.all"
+                        },
+                        {
+                            id: 6,
+                            permissionName: "role-circ-admin",
+                            displayName: "role-circ-admin",
+                            description: "",
+                            subPermissions: "ui-checkin.all,ui-checkout.all,ui-circulation-log.log-event.all,ui-courses.all,ui-plugin-create-inventory-records.create,ui-users.fee-fine-actions.all,ui-users.accounts.all,ui-inventory.instance.view,ui-inventory.item.mark-as-missing.execute,ui-notes.item.assign-unassign.execute,ui-notes.item.create,ui-notes.item.delete,ui-notes.item.edit,ui-notes.item.view,ui-requests.all,ui-calendar.view,ui-calendar.create,ui-calendar.update,ui-calendar.delete,ui-circulation.settings.cancellation-reasons,ui-circulation.settings.edit-circulation-rules,ui-circulation.settings.fixed-due-date-schedules,ui-circulation.settings.loan-policies,ui-circulation.settings.lost-item-fees-policies,ui-circulation.settings.notice-policies,ui-circulation.settings.other-settings,ui-circulation.settings.overdue-fines-policies,ui-circulation.settings.notice-templates,ui-circulation.settings.request-policies,ui-circulation.settings.staff-slips,ui-circulation.settings.loan-history,ui-courses.maintain-settings,ui-users.settings.feefines.all,ui-tags.view,ui-tags.all,ui-users.perms.edit,ui-users.user-service-points.edit,ui-users.create,ui-users.feesfines.actions.all,ui-users.patron-blocks.all,ui-users.proxies.all,ui-users.edit,ui-users.perms.view,ui-users.proxies.view,ui-users.user-service-points.view,ui-users.view,ui-users.reset.password,ui-users.loans-due-date.edit,ui-users.loans-claim-item-returned.execute,ui-users.loans-declare-item-lost.execute,ui-users.loans-declare-claimed-returned-item-as-missing.execute,ui-users.loans-renew-override.create,ui-users.loans-renew.create,ui-users.loans.view,ui-users.requests.all"
+                        },
+                    ];
+
+                    // Generate demo permission sets
+                    demoData = csvPermissionSets.map((perm, index) => ({
+                        id: index + 1,
+                        permissionName: `demo.${perm.permissionName}`,
+                        displayName: `Demo ${perm.displayName}`,
+                        description: `Demo version of ${perm.description || perm.permissionName}`,
+                        subPermissions: perm.subPermissions
+                    }));
+
+                    logMessage('success', `Generated ${demoData.length} demo permission sets from provided data`);
+                } catch (err) {
+                    logMessage('failure', `Error generating demo permission sets: ${err.message}`);
+                    elements.configError.textContent = `Error generating demo permission sets: ${err.message}. Using empty demo data.`;
+                    demoData = [];
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                }
+            }
+
+            // Authenticate (Initial Sign-In)
+            async function authenticate() {
+                const username = sanitizeInput(elements.username.value.trim());
+                const password = sanitizeInput(elements.password.value.trim());
+                selectedEndpoint = sanitizeInput(elements.okapiUrl.value.trim());
+                tenantId = sanitizeInput(elements.tenantId.value.trim());
+
+                if (!selectedEndpoint || !tenantId) {
+                    elements.authError.textContent = "Please enter both OKAPI endpoint URL and tenant ID.";
+                    return;
+                }
+
+                if (!username || !password) {
+                    elements.authError.textContent = "Please enter both username and password.";
+                    return;
+                }
+
+                if (username.length > 50 || password.length > 50 || tenantId.length > 50 || selectedEndpoint.length > 200) {
+                    elements.authError.textContent = "Input too long (max 50 for username/password/tenant, 200 for URL).";
+                    return;
+                }
+
+                if (!selectedEndpoint.match(/^https?:\/\/[^\s/$.?#].[^\s]*$/)) {
+                    elements.authError.textContent = "Invalid OKAPI endpoint URL format.";
+                    return;
+                }
+
+                toggleButtonState(true, 'auth');
+                elements.authLoading.classList.remove('hidden');
+                elements.authError.textContent = '';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-okapi-tenant": tenantId
+                        },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    if (response.status === 201) {
+                        authToken = response.headers.get("x-okapi-token");
+                        tokenExpiration = Date.now() + (10 * 60 * 1000);
+                        logMessage('success', "Successfully signed in!");
+                        elements.authForm.style.display = "none";
+                        elements.configForm.style.display = "block";
+                        saveEndpoint();
+                        await populateEndpointDropdown();
+                    } else {
+                        let errorMessage = 'Invalid credentials';
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.errors?.[0]?.message || `HTTP ${response.status}`;
+                        } catch (e) {
+                            // Response body not readable
+                        }
+                        elements.authError.textContent = `Login failed: ${errorMessage}. Please verify tenant ID and credentials.`;
+                        logMessage('failure', `Login failed: ${errorMessage}`);
+                    }
+                } catch (err) {
+                    elements.authError.textContent = `Connection error: ${err.message}. Check the endpoint URL and network.`;
+                    logMessage('failure', `Connection error: ${err.message}`);
+                } finally {
+                    elements.authLoading.classList.add('hidden');
+                    toggleButtonState(false, 'auth');
+                }
+            }
+
+            // Populate Endpoint Dropdown
+            async function populateEndpointDropdown() {
+                if (!isTokenValid()) return;
+
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Fetching tenants...';
+                try {
+                    const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?query=module==KwokyWorks%20and%20code==applications_configuration`, {
+                        headers: {
+                            "x-okapi-tenant": tenantId,
+                            "x-okapi-token": authToken
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const config = data.configs?.[0];
+                        if (config && config.value) {
+                            const parsedValue = JSON.parse(config.value);
+                            const endpoints = parsedValue.endpoints || [];
+                            endpoints.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                            elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                            endpoints.forEach(endpoint => {
+                                const option = document.createElement("option");
+                                option.value = `${endpoint.url}|${endpoint.tenant}`;
+                                option.textContent = endpoint.name;
+                                elements.endpointSelect.appendChild(option);
+                            });
+                            logMessage('success', `Loaded ${endpoints.length} tenants.`);
+                        } else {
+                            logMessage('failure', "No tenant configuration found.");
+                            elements.configError.textContent = "No tenant configuration found. Check the endpoint configuration.";
+                        }
+                    } else {
+                        let errorMessage = `HTTP ${response.status}`;
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.errors?.[0]?.message || errorMessage;
+                        } catch (e) {
+                            // Response body not readable
+                        }
+                        logMessage('failure', `Failed to fetch tenant configuration: ${errorMessage}`);
+                        elements.configError.textContent = `Failed to fetch tenants: ${errorMessage}`;
+                    }
+                } catch (err) {
+                    logMessage('failure', `Error fetching tenants: ${err.message}`);
+                    elements.configError.textContent = `Error fetching tenants: ${err.message}. Check the endpoint URL and network.`;
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                }
+            }
+
+            // Download demo data as CSV
+            function downloadCsv() {
+                if (demoData.length === 0) {
+                    logMessage('warning', 'No demo permission sets available to download.');
+                    return;
+                }
+
+                const headers = ['id', 'permissionName', 'displayName', 'description', 'subPermissions'];
+                const csvRows = [headers.join(',')];
+
+                demoData.forEach(record => {
+                    // Escape CSV fields to handle commas and quotes
+                    const escapeCsvField = (field) => {
+                        if (field === null || field === undefined) return '""';
+                        const str = String(field);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return `"${str}"`;
+                    };
+
+                    const values = [
+                        record.id,
+                        escapeCsvField(record.permissionName),
+                        escapeCsvField(record.displayName),
+                        escapeCsvField(record.description),
+                        escapeCsvField(record.subPermissions)
+                    ];
+                    csvRows.push(values.join(','));
+                });
+
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'folio_demo_permission_sets.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+                logMessage('success', 'Downloaded demo permission sets as CSV');
+            }
+
+            // Download existing permission sets from target tenant
+            async function downloadExistingPermissionSets() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Fetching existing permission sets...';
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json'
+                };
+
+                try {
+                    const queryUrl = `${selectedEndpoint}/perms/permissions?limit=1000`;
+                    const permissionsResponse = await fetchWithRetry(queryUrl, { headers });
+
+                    if (!permissionsResponse.ok) {
+                        let errorMessage = `HTTP ${permissionsResponse.status} ${permissionsResponse.statusText}`;
+                        try {
+                            const error = await permissionsResponse.json();
+                            errorMessage = error.errors?.[0]?.message || errorMessage;
+                        } catch (e) {
+                            // Response body not readable
+                        }
+                        throw new Error(`Failed to fetch permission sets: ${errorMessage}`);
+                    }
+
+                    const permissionsData = await permissionsResponse.json();
+                    if (!permissionsData || !Array.isArray(permissionsData.permissions)) {
+                        throw new Error('Invalid permissions response: permissions array not found');
+                    }
+
+                    // Filter for permission sets (mutable: true, visible: true)
+                    const permissionSets = permissionsData.permissions.filter(p => p.mutable && p.visible);
+                    logMessage('info', `Found ${permissionSets.length} existing permission sets`);
+
+                    if (permissionSets.length === 0) {
+                        elements.configLoading.classList.add('hidden');
+                        logMessage('info', 'No permission sets found to download');
+                        return;
+                    }
+
+                    const csvHeaders = ['id', 'permissionName', 'displayName', 'description', 'subPermissions'];
+                    const csvRows = [csvHeaders.join(',')];
+
+                    // Escape CSV fields for existing permission sets
+                    const escapeCsvField = (field) => {
+                        if (field === null || field === undefined) return '""';
+                        const str = String(field);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return `"${str}"`;
+                    };
+
+                    permissionSets.forEach((perm, index) => {
+                        const values = [
+                            index + 1,
+                            escapeCsvField(perm.permissionName || ''),
+                            escapeCsvField(perm.displayName || ''),
+                            escapeCsvField(perm.description || ''),
+                            escapeCsvField((perm.subPermissions || []).join(','))
+                        ];
+                        csvRows.push(values.join(','));
+                    });
+
+                    const csvContent = csvRows.join('\n');
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `folio_existing_permission_sets_${tenantId}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+
+                    logMessage('success', `Downloaded ${permissionSets.length} existing permission sets as CSV`);
+                } catch (err) {
+                    elements.configError.textContent = `Error downloading permission sets: ${err.message}`;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('failure', `Download error: ${err.message}`);
+                } finally {
+                    elements.configLoading.classList.add('hidden');
+                }
+            }
+
+            // Handle CSV upload
+            async function handleCsvUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Processing CSV file...';
+
+                try {
+                    const text = await file.text();
+                    const rows = text.split('\n').map(row => row.trim()).filter(row => row);
+                    if (rows.length < 1) throw new Error('CSV file is empty.');
+
+                    const headers = rows[0].split(',').map(h => h.trim());
+                    const expectedHeaders = ['id', 'permissionName', 'displayName', 'description', 'subPermissions'];
+                    if (!expectedHeaders.every((h, i) => h === headers[i])) {
+                        throw new Error('Invalid CSV headers. Expected: ' + expectedHeaders.join(', '));
+                    }
+
+                    const newData = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const values = parseCsvRow(rows[i]);
+                        if (values.length !== headers.length) {
+                            throw new Error(`Invalid number of columns in row ${i + 1}. Expected ${headers.length}, found ${values.length}.`);
+                        }
+                        const id = parseInt(values[0]);
+                        if (isNaN(id)) throw new Error(`Invalid ID in row ${i + 1}.`);
+                        if (!isValidPermissionName(values[1])) throw new Error(`Invalid permission name in row ${i + 1}: ${values[1]}`);
+                        newData.push({
+                            id,
+                            permissionName: values[1],
+                            displayName: values[2],
+                            description: values[3],
+                            subPermissions: values[4]
+                        });
+                    }
+
+                    if (newData.length === 0) throw new Error('No valid data rows found in CSV.');
+                    demoData = newData;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('success', `Uploaded CSV with ${newData.length} permission set records`, newData.map(d => ({ name: `Permission ${d.permissionName}` })));
+                } catch (error) {
+                    elements.configError.textContent = `Error processing CSV: ${error.message}`;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('failure', `Failed to process CSV: ${error.message}`);
+                }
+
+                event.target.value = '';
+            }
+
+            // Parse CSV row, handling quoted fields
+            function parseCsvRow(row) {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+
+                    if (char === '"') {
+                        if (inQuotes && i + 1 < row.length && row[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+
+                // Push the last field
+                values.push(current.trim().replace(/^"|"$/g, '').replace(/""/g, '"'));
+                return values;
+            }
+
+            // Validate permission name format (e.g., module.function.action)
+            function isValidPermissionName(name) {
+                if (!name || name.trim() === '') return false;
+                const permissionRegex = /^[a-z0-9][a-z0-9.-]*[a-z0-9]$/;
+                return permissionRegex.test(name);
+            }
+
+            // Log message to table
+            function logMessage(type, message, items = []) {
+                const statusTable = elements.status;
+                const row = document.createElement('tr');
+                const timestamp = new Date().toLocaleTimeString();
+                const itemText = Array.isArray(items) && items.length > 0
+                    ? items.map(i => i.name ? `${i.name} (${i.id || 'no-id'})` : JSON.stringify(i)).join(', ')
+                    : 'None';
+                row.innerHTML = `
+                    <td>${timestamp}</td>
+                    <td class="${type} capitalize">${type}</td>
+                    <td>${message}: ${itemText}</td>
+                `;
+                statusTable.prepend(row);
+            }
+
+            // Clear logs
+            function clearLogs() {
+                elements.status.innerHTML = '';
+                logMessage('info', 'Logs cleared');
+            }
+
+            // Update button states
+            function updateButtonStates(loggedIn) {
+                elements.deleteButton.disabled = !loggedIn;
+                elements.insertButton.disabled = !loggedIn;
+                elements.downloadExistingCsvButton.disabled = !loggedIn;
+            }
+
+            // Confirm deletion
+            function confirmDelete() {
+                if (confirm('Are you sure you want to delete all demo permission sets? This action cannot be undone.')) {
+                    deleteDemoPermissionSets();
+                }
+            }
+
+            // Delete demo permission sets
+            async function deleteDemoPermissionSets() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Deleting demo permission sets...';
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json'
+                };
+
+                try {
+                    // Use CQL query to find permission sets starting with "demo"
+                    const query = encodeURIComponent('permissionName=demo*');
+                    const queryUrl = `${selectedEndpoint}/perms/permissions?query=${query}&limit=1000`;
+                    logMessage('info', `Querying permission sets with URL: ${queryUrl}`);
+
+                    const permissionsResponse = await fetchWithRetry(queryUrl, { headers });
+
+                    if (!permissionsResponse.ok) {
+                        let errorMessage = `HTTP ${permissionsResponse.status} ${permissionsResponse.statusText}`;
+                        if (permissionsResponse.status === 404) {
+                            errorMessage = 'Permission API not available on this instance';
+                        }
+                        try {
+                            const error = await permissionsResponse.json();
+                            errorMessage = error.errors?.[0]?.message || errorMessage;
+                        } catch (e) {
+                            // Response body not readable
+                        }
+                        throw new Error(`Failed to query permission sets: ${errorMessage}`);
+                    }
+
+                    const permissionsData = await permissionsResponse.json();
+                    if (!permissionsData || !Array.isArray(permissionsData.permissions)) {
+                        throw new Error('Invalid permissions response: permissions array not found');
+                    }
+
+                    const permissions = permissionsData.permissions;
+                    logMessage('info', `Found ${permissions.length} existing demo permission sets`, permissions.map(p => ({ name: p.permissionName, id: p.id })));
+
+                    if (permissions.length === 0) {
+                        elements.configLoading.classList.add('hidden');
+                        logMessage('info', 'No demo permission sets found to delete');
+                        return;
+                    }
+
+                    for (const permission of permissions) {
+                        try {
+                            // Verify permission set exists
+                            const permissionCheckResponse = await fetchWithRetry(`${selectedEndpoint}/perms/permissions/${permission.id}`, { headers });
+
+                            if (!permissionCheckResponse.ok) {
+                                let errorMessage = `HTTP ${permissionCheckResponse.status} ${permissionCheckResponse.statusText}`;
+                                if (permissionCheckResponse.status === 404) {
+                                    errorMessage = 'Permission set not found';
+                                }
+                                throw new Error(`Permission set ${permission.id} not found or inaccessible: ${errorMessage}`);
+                            }
+
+                            // Delete permission set
+                            const deleteUrl = `${selectedEndpoint}/perms/permissions/${permission.id}`;
+                            logMessage('info', `Sending DELETE request to: ${deleteUrl}`);
+                            const deleteHeaders = {
+                                ...headers,
+                                'Accept': 'text/plain'
+                            };
+                            const deleteResponse = await fetchWithRetry(deleteUrl, {
+                                method: 'DELETE',
+                                headers: deleteHeaders
+                            });
+
+                            if (!deleteResponse.ok) {
+                                let errorMessage = `HTTP ${deleteResponse.status} ${deleteResponse.statusText}`;
+                                try {
+                                    const errorText = await deleteResponse.text();
+                                    errorMessage += ` - ${errorText || 'No additional error details'}`;
+                                } catch (e) {
+                                    // Response body not readable
+                                }
+                                throw new Error(`Failed to delete permission set ${permission.id}: ${errorMessage}`);
+                            }
+
+                            logMessage('info', `Deleted permission set`, [{ name: permission.permissionName, id: permission.id }]);
+                        } catch (err) {
+                            logMessage('failure', `Error deleting permission set ${permission.id}: ${err.message}`, [{ name: err.message }]);
+                        }
+                    }
+
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('success', 'Successfully deleted demo permission sets');
+                } catch (err) {
+                    elements.configError.textContent = `Error during deletion: ${err.message}. Check if the permissions API is available.`;
+                    elements.configLoading.classList.add('hidden');
+                    logMessage('failure', `Deletion error: ${err.message}`);
+                }
+            }
+
+            // Insert demo permission sets
+            async function insertDemoPermissionSets() {
+                if (!isTokenValid()) {
+                    logMessage('failure', 'Please authenticate for the selected tenant.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                    return;
+                }
+
+                if (demoData.length === 0) {
+                    logMessage('failure', 'No demo permission sets available to insert.');
+                    return;
+                }
+
+                elements.configError.textContent = '';
+                elements.configLoading.classList.remove('hidden');
+                elements.configLoading.innerHTML = '<span class="spinner"></span> Inserting demo permission sets...';
+
+                const headers = {
+                    'x-okapi-tenant': tenantId,
+                    'x-okapi-token': authToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                };
+
+                for (const record of demoData) {
+                    try {
+                        const permissionSet = {
+                            id: crypto.randomUUID(),
+                            permissionName: record.permissionName,
+                            displayName: record.displayName,
+                            description: record.description,
+                            subPermissions: record.subPermissions ? record.subPermissions.split(',').map(p => p.trim()).filter(p => p) : [],
+                            mutable: true,
+                            visible: true
+                        };
+
+                        const permissionResponse = await fetchWithRetry(`${selectedEndpoint}/perms/permissions`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(permissionSet)
+                        });
+
+                        if (!permissionResponse.ok) {
+                            let errorMessage = `HTTP ${permissionResponse.status} ${permissionResponse.statusText}`;
+                            if (permissionResponse.status === 404) {
+                                errorMessage = 'Permission API not available on this instance';
+                            }
+                            try {
+                                const errorData = await permissionResponse.json();
+                                errorMessage = errorData.errors?.[0]?.message || JSON.stringify(errorData);
+                            } catch (e) {
+                                // Response body not readable
+                            }
+                            throw new Error(`Failed to create permission set: ${errorMessage}`);
+                        }
+
+                        logMessage('info', `Created permission set ${record.permissionName}`, [{ name: permissionSet.id }]);
+                        logMessage('success', `Successfully created permission set ${record.permissionName}`);
+                    } catch (error) {
+                        logMessage('failure', `Failed to create permission set ${record.permissionName}: ${error.message}`, [{ name: error.message }]);
+                    }
+                }
+
+                elements.configLoading.classList.add('hidden');
+            }
+
+            // Sanitize input to prevent XSS
+            function sanitizeInput(input) {
+                const div = document.createElement('div');
+                div.textContent = input;
+                return div.innerHTML;
+            }
+
+            // Fetch with retry logic
+            async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        return response;
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                        await new Promise(resolve => setTimeout(resolve, backoff * Math.pow(2, i)));
+                    }
+                }
+            }
+
+            // Token Validation
+            function isTokenValid() {
+                if (!authToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                    return false;
+                }
+                return true;
+            }
+
+            // Reset Configuration Form
+            function resetConfigForm() {
+                updateButtonStates(false);
+                elements.configError.textContent = '';
+            }
+
+            // Toggle Button State
+            function toggleButtonState(disable, formType) {
+                if (formType === 'auth') {
+                    elements.loginButton.disabled = disable;
+                } else if (formType === 'tenantAuth') {
+                    elements.tenantAuthButton.disabled = disable;
+                }
+            }
+
+            // Check Token Expiration
+            function checkTokenExpiration() {
+                if (authToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                    logMessage('failure', 'Tenant session expired. Please authenticate again.');
+                    elements.tenantAuthForm.style.display = 'grid';
+                    elements.tenantAuthButtonContainer.style.display = 'block';
+                    elements.tenantConfigForm.style.display = 'none';
+                }
+            }
+
+            // Save Endpoint
+            function saveEndpoint() {
+                const value = `${elements.okapiUrl.value}|${elements.tenantId.value}`;
+                localStorage.setItem('folio_endpoint', value);
+            }
+
+            // Load Endpoint
+            function loadEndpoint() {
+                const saved = localStorage.getItem('folio_endpoint');
+                if (saved) {
+                    const [url, tenant] = saved.split('|');
+                    elements.okapiUrl.value = url || '';
+                    elements.tenantId.value = tenant || '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
