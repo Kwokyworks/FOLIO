@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Purchase Order History Viewer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        h3 {
+            font-size: 16px;
+            color: #555;
+            margin: 15px 0 10px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .form-grid label {
+            color: #555;
+            font-weight: bold;
+        }
+        .form-grid input,
+        .form-grid select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        button.primary {
+            background-color: #005d9c;
+            color: #fff;
+        }
+        button.primary:hover:not(:disabled) {
+            background-color: #003f6b;
+        }
+        button.danger {
+            background-color: #d11;
+            color: #fff;
+        }
+        button.danger:hover:not(:disabled) {
+            background-color: #a00;
+        }
+        button.secondary {
+            background-color: #666;
+            color: #fff;
+        }
+        button.secondary:hover:not(:disabled) {
+            background-color: #555;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .po-details, .audit-table {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+            display: block;
+        }
+        .po-details table, .audit-table table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .po-details th, .po-details td,
+        .audit-table th, .audit-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .po-details th, .audit-table th {
+            background-color: #f0f0f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .po-details tr:hover, .audit-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .info { color: #005d9c; }
+        .success { color: #006600; }
+        .failure { color: #d11; }
+        .warning { color: #e68a00; }
+        .capitalize { text-transform: capitalize; }
+        .spinner {
+            border: 2px solid #f0f0f0;
+            border-top: 2px solid #005d9c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .error {
+            color: #d11;
+            margin: 10px 0;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .log-header button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .log-header button:hover {
+            color: #003f6b;
+        }
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid #005d9c;
+            outline-offset: 2px;
+        }
+        .hidden {
+            display: none;
+        }
+        .toggle-logs-button {
+            background: none;
+            border: none;
+            color: #005d9c;
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .toggle-logs-button:hover {
+            color: #003f6b;
+        }
+        .po-section {
+            margin-bottom: 20px;
+        }
+        .po-section pre {
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        @media (max-width: 600px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FOLIO Purchase Order History Viewer</h1>
+
+        <!-- Authentication Form -->
+        <section id="authForm">
+            <h2>Login to Central Administrative Tenant</h2>
+            <div class="form-grid">
+                <label for="endpointUrl">Endpoint URL:</label>
+                <input type="url" id="endpointUrl" placeholder="e.g., https://okapi-demo2.folio.ebsco.com" value="https://okapi-demo2.folio.ebsco.com" maxlength="200" aria-required="true">
+
+                <label for="tenantId">Tenant ID:</label>
+                <input type="text" id="tenantId" placeholder="e.g., fs00001176" value="fs00001176" maxlength="50" aria-required="true">
+
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username" maxlength="50" aria-required="true">
+
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password" maxlength="50" aria-required="true">
+            </div>
+            <div class="button-group">
+                <button id="authButton" class="primary" aria-label="Sign In">Sign In</button>
+            </div>
+            <div id="authLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Signing in...</span>
+            </div>
+            <div id="authError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Tenant Selection and Authentication -->
+        <section id="searchFormContainer" class="hidden">
+            <h2>Select and Authenticate Tenant</h2>
+            <div class="form-grid">
+                <label for="endpointSelect">Tenant:</label>
+                <select id="endpointSelect" aria-required="true">
+                    <option value="">Select a tenant</option>
+                </select>
+            </div>
+            <div id="tenantAuthForm" class="form-grid hidden">
+                <label for="tenantUsername">Tenant Username:</label>
+                <input type="text" id="tenantUsername" placeholder="Enter username for selected tenant" maxlength="50" aria-required="true">
+
+                <label for="tenantPassword">Tenant Password:</label>
+                <input type="password" id="tenantPassword" placeholder="Enter password for selected tenant" maxlength="50" aria-required="true">
+            </div>
+            <div id="tenantAuthButtonContainer" class="button-group hidden">
+                <button id="tenantAuthButton" class="primary" aria-label="Authenticate Tenant">Authenticate Tenant</button>
+            </div>
+
+            <!-- PO Selection Form -->
+            <div id="poSelectionForm" class="hidden">
+                <h2>Select Purchase Order</h2>
+                <div class="form-grid">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect" aria-required="true">
+                        <option value="">Select a year</option>
+                    </select>
+
+                    <label for="poSelect">Purchase Order:</label>
+                    <select id="poSelect" aria-required="true">
+                        <option value="">Select a purchase order</option>
+                    </select>
+                </div>
+                <div class="button-group">
+                    <button id="viewButton" class="primary" aria-label="View PO History">View History</button>
+                </div>
+            </div>
+            <div id="searchLoading" class="loading hidden" aria-live="polite">
+                <span class="spinner"></span>
+                <span>Loading...</span>
+            </div>
+            <div id="searchError" class="error" role="alert"></div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsContainer" class="hidden">
+            <h2>Purchase Order Details</h2>
+            <div class="button-group">
+                <button onclick="exportToCSV()" class="primary" aria-label="Export to CSV">Export to CSV</button>
+                <button onclick="exportToJSON()" class="primary" aria-label="Export to JSON">Export to JSON</button>
+            </div>
+            <div class="po-details" id="poDetails"></div>
+        </section>
+
+        <!-- Logs Toggle Button -->
+        <button id="toggleLogsButton" class="toggle-logs-button" aria-expanded="false" aria-controls="logSection" aria-label="Show Logs">Show Logs</button>
+
+        <!-- Logs Section -->
+        <section class="log-section hidden" id="logSection">
+            <div class="log-header">
+                <h2>Logs</h2>
+                <button id="clearLogsButton" aria-label="Clear Logs">Clear Logs</button>
+            </div>
+            <div class="log-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 16.67%;">Timestamp</th>
+                            <th style="width: 16.67%;">Type</th>
+                            <th style="width: 66.66%;">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="status"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const elements = {
+            authButton: document.getElementById("authButton"),
+            authForm: document.getElementById("authForm"),
+            authLoading: document.getElementById("authLoading"),
+            authError: document.getElementById("authError"),
+            searchFormContainer: document.getElementById("searchFormContainer"),
+            endpointUrl: document.getElementById("endpointUrl"),
+            tenantId: document.getElementById("tenantId"),
+            username: document.getElementById("username"),
+            password: document.getElementById("password"),
+            endpointSelect: document.getElementById("endpointSelect"),
+            tenantAuthForm: document.getElementById("tenantAuthForm"),
+            tenantUsername: document.getElementById("tenantUsername"),
+            tenantPassword: document.getElementById("tenantPassword"),
+            tenantAuthButton: document.getElementById("tenantAuthButton"),
+            tenantAuthButtonContainer: document.getElementById("tenantAuthButtonContainer"),
+            poSelectionForm: document.getElementById("poSelectionForm"),
+            yearSelect: document.getElementById("yearSelect"),
+            poSelect: document.getElementById("poSelect"),
+            viewButton: document.getElementById("viewButton"),
+            searchLoading: document.getElementById("searchLoading"),
+            searchError: document.getElementById("searchError"),
+            logTable: document.getElementById("status"),
+            resultsContainer: document.getElementById("resultsContainer"),
+            poDetails: document.getElementById("poDetails"),
+            clearLogsButton: document.getElementById("clearLogsButton"),
+            toggleLogsButton: document.getElementById("toggleLogsButton"),
+            logSection: document.getElementById("logSection")
+        };
+
+        let okapiToken = null;
+        let tokenExpiration = null;
+        let selectedEndpoint = null;
+        let tenantId = null;
+        let poData = null;
+        let auditData = {};
+
+        // Log Message
+        function logMessage(type, message) {
+            try {
+                const statusTable = elements.logTable;
+                const row = document.createElement('tr');
+                const timestamp = new Date().toLocaleTimeString();
+                row.innerHTML = `
+                    <td>${timestamp}</td>
+                    <td class="${type} capitalize">${type}</td>
+                    <td>${message}</td>
+                `;
+                if (statusTable.firstChild) {
+                    statusTable.insertBefore(row, statusTable.firstChild);
+                } else {
+                    statusTable.appendChild(row);
+                }
+                const logTable = statusTable.closest('.log-table');
+                if (logTable) {
+                    logTable.scrollTop = 0;
+                }
+            } catch (err) {
+                console.error('Logging error:', err);
+            }
+        }
+
+        // Clear Logs
+        function clearLogs() {
+            try {
+                elements.logTable.innerHTML = '';
+                logMessage('info', 'Logs cleared');
+            } catch (err) {
+                console.error('Clear logs error:', err);
+            }
+        }
+
+        // Toggle Logs Visibility
+        function toggleLogs() {
+            try {
+                const isHidden = elements.logSection.classList.toggle('hidden');
+                elements.toggleLogsButton.textContent = isHidden ? 'Show Logs' : 'Hide Logs';
+                elements.toggleLogsButton.setAttribute('aria-expanded', !isHidden);
+                elements.toggleLogsButton.setAttribute('aria-label', isHidden ? 'Show Logs' : 'Hide Logs');
+            } catch (err) {
+                console.error('Toggle logs error:', err);
+                logMessage('failure', `Toggle logs error: ${err.message}`);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEndpoint();
+            setInterval(checkTokenExpiration, 60000);
+            logMessage('info', 'Application initialized.');
+            logMessage('info', 'Ready for authentication.');
+        });
+
+        // Event Listeners
+        elements.authButton.addEventListener("click", handleAuth);
+        elements.tenantAuthButton.addEventListener("click", handleTenantAuth);
+        elements.endpointSelect.addEventListener("change", handleEndpointChange);
+        elements.yearSelect.addEventListener("change", handleYearChange);
+        elements.viewButton.addEventListener("click", handleViewPO);
+        elements.clearLogsButton.addEventListener("click", clearLogs);
+        elements.toggleLogsButton.addEventListener("click", toggleLogs);
+        elements.password.addEventListener('input', () => {
+            elements.password.value = elements.password.value.replace(/\s/g, '');
+        });
+        elements.tenantPassword.addEventListener('input', () => {
+            elements.tenantPassword.value = elements.tenantPassword.value.replace(/\s/g, '');
+        });
+        window.addEventListener('online', () => {
+            logMessage('success', 'Back online!');
+        });
+        window.addEventListener('offline', () => {
+            logMessage('failure', 'No internet connection.');
+        });
+
+        // Authentication (Initial Sign-In)
+        async function handleAuth() {
+            const username = sanitizeInput(elements.username.value.trim());
+            const password = sanitizeInput(elements.password.value.trim());
+            selectedEndpoint = sanitizeInput(elements.endpointUrl.value.trim());
+            tenantId = sanitizeInput(elements.tenantId.value.trim());
+
+            if (!selectedEndpoint || !tenantId) {
+                elements.authError.textContent = "Please enter both endpoint URL and tenant ID.";
+                logMessage('failure', 'Authentication failed: Missing endpoint URL or tenant ID.');
+                return;
+            }
+
+            if (!username || !password) {
+                elements.authError.textContent = "Please enter both username and password.";
+                logMessage('failure', 'Authentication failed: Missing username or password.');
+                return;
+            }
+
+            if (!selectedEndpoint.match(/^https?:\/\/[^\s/$.?#].[^\s]*$/)) {
+                elements.authError.textContent = "Invalid endpoint URL format.";
+                logMessage('failure', 'Authentication failed: Invalid endpoint URL format.');
+                return;
+            }
+
+            toggleButtonState(true, 'auth');
+            elements.authLoading.classList.remove('hidden');
+            elements.authError.textContent = '';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', "Successfully signed in!");
+                    elements.authForm.classList.add('hidden');
+                    elements.searchFormContainer.classList.remove('hidden');
+                    saveEndpoint();
+                    await populateEndpointDropdown();
+                } else {
+                    const error = await response.json();
+                    elements.authError.textContent = `Login failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                    logMessage('failure', `Authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`);
+                }
+            } catch (err) {
+                elements.authError.textContent = `Connection error: ${err.message}`;
+                logMessage('failure', `Authentication error: ${err.message}`);
+            } finally {
+                elements.authLoading.classList.add('hidden');
+                toggleButtonState(false, 'auth');
+            }
+        }
+
+        // Populate Endpoint Dropdown
+        async function populateEndpointDropdown() {
+            if (!isTokenValid()) {
+                logMessage('failure', 'Session expired. Please authenticate again.');
+                return;
+            }
+
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Fetching tenants...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/configurations/entries?query=module==KwokyWorks%20and%20code==applications_configuration`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const config = data.configs?.[0];
+                    if (config && config.value) {
+                        const parsedValue = JSON.parse(config.value);
+                        const endpoints = parsedValue.endpoints || [];
+                        endpoints.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+                        elements.endpointSelect.innerHTML = '<option value="">Select a tenant</option>';
+                        endpoints.forEach(endpoint => {
+                            const option = document.createElement("option");
+                            option.value = `${endpoint.url}|${endpoint.tenant}`;
+                            option.textContent = endpoint.name;
+                            elements.endpointSelect.appendChild(option);
+                        });
+                        logMessage('success', `Loaded ${endpoints.length} tenants.`);
+                    } else {
+                        logMessage('failure', "No tenant configuration found.");
+                        elements.searchError.textContent = "No tenant configuration found.";
+                    }
+                } else {
+                    logMessage('failure', `Failed to fetch tenant configuration (HTTP ${response.status}).`);
+                    elements.searchError.textContent = `Failed to fetch tenant configuration (HTTP ${response.status}).`;
+                }
+            } catch (err) {
+                logMessage('failure', `Error fetching tenants: ${err.message}`);
+                elements.searchError.textContent = `Error fetching tenants: ${err.message}`;
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+            }
+        }
+
+        // Handle Endpoint Change
+        function handleEndpointChange() {
+            const value = elements.endpointSelect.value;
+            if (value) {
+                [selectedEndpoint, tenantId] = value.split("|");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.poSelectionForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                elements.tenantUsername.value = "";
+                elements.tenantPassword.value = "";
+                logMessage('info', `Selected tenant: ${tenantId}. Please authenticate.`);
+            } else {
+                selectedEndpoint = null;
+                tenantId = null;
+                okapiToken = null;
+                tokenExpiration = null;
+                poData = null;
+                auditData = {};
+                elements.tenantAuthForm.classList.add('hidden');
+                elements.tenantAuthButtonContainer.classList.add('hidden');
+                elements.poSelectionForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                elements.poDetails.innerHTML = '';
+                logMessage('info', 'No tenant selected.');
+            }
+        }
+
+        // Authenticate Selected Tenant
+        async function handleTenantAuth() {
+            const username = sanitizeInput(elements.tenantUsername.value.trim());
+            const password = sanitizeInput(elements.tenantPassword.value.trim());
+
+            if (!username || !password) {
+                elements.searchError.textContent = "Please enter both username and password for the tenant.";
+                logMessage('failure', 'Tenant authentication failed: Missing username or password.');
+                return;
+            }
+
+            toggleButtonState(true, 'tenantAuth');
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Authenticating tenant...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/authn/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-okapi-tenant": tenantId
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.status === 201) {
+                    okapiToken = response.headers.get("x-okapi-token");
+                    tokenExpiration = Date.now() + (10 * 60 * 1000);
+                    logMessage('success', `Successfully authenticated for tenant: ${tenantId}`);
+                    elements.tenantAuthForm.classList.add('hidden');
+                    elements.tenantAuthButtonContainer.classList.add('hidden');
+                    elements.poSelectionForm.classList.remove('hidden');
+                    await populateYearDropdown();
+                } else {
+                    const error = await response.json();
+                    elements.searchError.textContent = `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`;
+                    logMessage('failure', `Tenant authentication failed: ${error.errors?.[0]?.message || 'Invalid credentials'}`);
+                }
+            } catch (err) {
+                elements.searchError.textContent = `Tenant authentication error: ${err.message}`;
+                logMessage('failure', `Tenant authentication error: ${err.message}`);
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+                toggleButtonState(false, 'tenantAuth');
+            }
+        }
+
+        // Populate Year Dropdown
+        async function populateYearDropdown() {
+            if (!isTokenValid()) {
+                logMessage('failure', 'Session expired. Please authenticate again.');
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.poSelectionForm.classList.add('hidden');
+                return;
+            }
+
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Fetching years...';
+            try {
+                const years = [];
+                const currentYear = new Date().getFullYear();
+                for (let year = currentYear - 5; year <= currentYear; year++) {
+                    years.push(year);
+                }
+                elements.yearSelect.innerHTML = '<option value="">Select a year</option>';
+                years.sort((a, b) => b - a).forEach(year => {
+                    const option = document.createElement("option");
+                    option.value = year;
+                    option.textContent = year;
+                    elements.yearSelect.appendChild(option);
+                });
+                logMessage('success', `Loaded ${years.length} years.`);
+            } catch (err) {
+                logMessage('failure', `Error fetching years: ${err.message}`);
+                elements.searchError.textContent = `Error fetching years: ${err.message}`;
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+            }
+        }
+
+        // Handle Year Change
+        async function handleYearChange() {
+            const year = elements.yearSelect.value;
+            if (!year) {
+                elements.poSelect.innerHTML = '<option value="">Select a purchase order</option>';
+                elements.poSelect.classList.add('hidden');
+                elements.viewButton.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                logMessage('info', 'No year selected.');
+                return;
+            }
+
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Fetching purchase orders...';
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}/orders-storage/purchase-orders?query=dateOrdered>=${year}-01-01T00:00:00.000+0000%20and%20dateOrdered<=${year}-12-31T23:59:59.999+0000&limit=1000`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    const pos = Array.isArray(data.purchaseOrders) ? data.purchaseOrders : [];
+                    elements.poSelect.innerHTML = '<option value="">Select a purchase order</option>';
+                    pos.sort((a, b) => a.poNumber.localeCompare(b.poNumber)).forEach(po => {
+                        const option = document.createElement("option");
+                        option.value = po.id;
+                        option.textContent = `${po.poNumber} (Ordered: ${po.dateOrdered || 'N/A'})`;
+                        elements.poSelect.appendChild(option);
+                    });
+                    elements.poSelect.classList.remove('hidden');
+                    elements.viewButton.classList.remove('hidden');
+                    logMessage('success', `Loaded ${pos.length} purchase orders for ${year}.`);
+                } else {
+                    const errorText = await response.text();
+                    logMessage('failure', `Failed to fetch purchase orders (HTTP ${response.status}): ${errorText}`);
+                    elements.searchError.textContent = `Failed to fetch purchase orders (HTTP ${response.status}): ${errorText}`;
+                }
+            } catch (err) {
+                logMessage('failure', `Error fetching purchase orders: ${err.message}`);
+                elements.searchError.textContent = `Error fetching purchase orders: ${err.message}`;
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+            }
+        }
+
+        // Handle View PO
+        async function handleViewPO() {
+            if (!isTokenValid()) {
+                logMessage('failure', "Session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.poSelectionForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+                return;
+            }
+
+            const poId = elements.poSelect.value;
+            if (!poId) {
+                elements.searchError.textContent = "Please select a purchase order.";
+                logMessage('failure', 'No purchase order selected.');
+                return;
+            }
+
+            toggleButtonState(true, 'view');
+            elements.searchLoading.classList.remove('hidden');
+            elements.searchLoading.innerHTML = '<span class="spinner"></span> Loading PO history...';
+            elements.searchError.textContent = '';
+
+            try {
+                // Fetch PO details
+                const poResponse = await fetchWithRetry(`${selectedEndpoint}/orders-storage/purchase-orders/${poId}`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (!poResponse.ok) {
+                    const errorText = await poResponse.text();
+                    throw new Error(`Failed to fetch PO: ${errorText}`);
+                }
+                poData = await poResponse.json();
+
+                // Fetch audit logs
+                auditData = {
+                    order: await fetchAuditData(`/audit-data/acquisition/order/${poId}`, 'orderAuditEvents'),
+                    orderLines: [],
+                    pieces: [],
+                    pieceStatusChanges: [],
+                    invoices: [],
+                    invoiceLines: []
+                };
+
+                // Fetch order lines and their audit data
+                const orderLinesResponse = await fetchWithRetry(`${selectedEndpoint}/orders/order-lines?query=purchaseOrderId==${poId}`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (orderLinesResponse.ok) {
+                    const orderLines = (await orderLinesResponse.json()).poLines || [];
+                    for (const line of orderLines) {
+                        const lineAudit = await fetchAuditData(`/audit-data/acquisition/order-line/${line.id}`, 'orderLineAuditEvents');
+                        auditData.orderLines.push({ line, audit: lineAudit });
+
+                        // Fetch pieces for each order line
+                        const piecesResponse = await fetchWithRetry(`${selectedEndpoint}/orders/pieces?query=poLineId==${line.id}`, {
+                            headers: {
+                                "x-okapi-tenant": tenantId,
+                                "x-okapi-token": okapiToken
+                            }
+                        });
+                        if (piecesResponse.ok) {
+                            const pieces = (await piecesResponse.json()).pieces || [];
+                            for (const piece of pieces) {
+                                const pieceAudit = await fetchAuditData(`/audit-data/acquisition/piece/${piece.id}`, 'pieceAuditEvents');
+                                const statusChangeAudit = await fetchAuditData(`/audit-data/acquisition/piece/${piece.id}/status-change-history`, 'pieceStatusChangeHistory');
+                                auditData.pieces.push({ piece, audit: pieceAudit });
+                                auditData.pieceStatusChanges.push({ piece, audit: statusChangeAudit });
+                            }
+                        }
+                    }
+                }
+
+                // Fetch invoices and invoice lines
+                const invoicesResponse = await fetchWithRetry(`${selectedEndpoint}/invoice/invoices?query=poNumbers=="${poData.poNumber}"`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (invoicesResponse.ok) {
+                    const invoices = (await invoicesResponse.json()).invoices || [];
+                    for (const invoice of invoices) {
+                        const invoiceAudit = await fetchAuditData(`/audit-data/acquisition/invoice/${invoice.id}`, 'invoiceAuditEvents');
+                        auditData.invoices.push({ invoice, audit: invoiceAudit });
+
+                        const invoiceLinesResponse = await fetchWithRetry(`${selectedEndpoint}/invoice/invoice-lines?query=invoiceId==${invoice.id}`, {
+                            headers: {
+                                "x-okapi-tenant": tenantId,
+                                "x-okapi-token": okapiToken
+                            }
+                        });
+                        if (invoiceLinesResponse.ok) {
+                            const invoiceLines = (await invoiceLinesResponse.json()).invoiceLines || [];
+                            for (const line of invoiceLines) {
+                                const lineAudit = await fetchAuditData(`/audit-data/acquisition/invoice-line/${line.id}`, 'invoiceLineAuditEvents');
+                                auditData.invoiceLines.push({ line, audit: lineAudit });
+                            }
+                        }
+                    }
+                }
+
+                logMessage('success', `Loaded history for PO ${poData.poNumber}.`);
+                displayPOHistory();
+            } catch (error) {
+                logMessage('failure', `Error loading PO history: ${error.message}`);
+                elements.searchError.textContent = `Error: ${error.message}`;
+                poData = null;
+                auditData = {};
+                displayPOHistory();
+            } finally {
+                elements.searchLoading.classList.add('hidden');
+                toggleButtonState(false, 'view');
+            }
+        }
+
+        // Fetch Audit Data
+        async function fetchAuditData(endpoint, auditKey) {
+            try {
+                const response = await fetchWithRetry(`${selectedEndpoint}${endpoint}`, {
+                    headers: {
+                        "x-okapi-tenant": tenantId,
+                        "x-okapi-token": okapiToken
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    return Array.isArray(data[auditKey]) ? data[auditKey] : [];
+                } else {
+                    const errorText = await response.text();
+                    logMessage('warning', `Failed to fetch audit data for ${endpoint} (HTTP ${response.status}): ${errorText}`);
+                    return [];
+                }
+            } catch (err) {
+                logMessage('warning', `Error fetching audit data for ${endpoint}: ${err.message}`);
+                return [];
+            }
+        }
+
+        // Summarize Snapshot
+        function summarizeSnapshot(snapshot, entityType) {
+            if (!snapshot || !snapshot.map) return '';
+            const map = snapshot.map;
+            let summary = {};
+            if (entityType === 'order') {
+                summary = {
+                    poNumber: map.poNumber || '',
+                    workflowStatus: map.workflowStatus || '',
+                    approved: map.approved || false,
+                    customFields: map.customFields ? JSON.stringify(map.customFields) : ''
+                };
+            } else if (entityType === 'orderLine') {
+                summary = {
+                    poLineNumber: map.poLineNumber || '',
+                    titleOrPackage: map.titleOrPackage || '',
+                    cost: map.cost ? JSON.stringify(map.cost) : ''
+                };
+            } else if (entityType === 'piece') {
+                summary = {
+                    receivingStatus: map.receivingStatus || '',
+                    titleId: map.titleId || ''
+                };
+            } else if (entityType === 'pieceStatusChange') {
+                summary = {
+                    status: map.status || ''
+                };
+            } else if (entityType === 'invoice') {
+                summary = {
+                    invoiceNumber: map.invoiceNumber || '',
+                    status: map.status || ''
+                };
+            } else if (entityType === 'invoiceLine') {
+                summary = {
+                    invoiceLineNumber: map.invoiceLineNumber || '',
+                    description: map.description || ''
+                };
+            }
+            return JSON.stringify(summary, null, 2).replace(/</g, '<').replace(/>/g, '>');
+        }
+
+        // Display PO History
+        function displayPOHistory() {
+            elements.poDetails.innerHTML = '';
+            elements.resultsContainer.classList.add('hidden');
+
+            if (!poData) {
+                elements.poDetails.innerHTML = '<p>No data available.</p>';
+                return;
+            }
+
+            let html = '<div class="po-section">';
+            html += `<h3>Purchase Order: ${poData.poNumber}</h3>`;
+            html += '<table class="po-details">';
+            html += '<tr><th>Purchase Order ID</th><td>' + (poData.id || '') + '</td></tr>';
+            html += '<tr><th>Purchase Order Number</th><td>' + (poData.poNumber || '') + '</td></tr>';
+            html += '<tr><th>Date Ordered</th><td>' + (poData.dateOrdered || '') + '</td></tr>';
+            html += '<tr><th>Created Date</th><td>' + (poData.createdDate || '') + '</td></tr>';
+            html += '<tr><th>Vendor ID</th><td>' + (poData.vendor || '') + '</td></tr>';
+            html += '<tr><th>Workflow Status</th><td>' + (poData.workflowStatus || '') + '</td></tr>';
+            html += '<tr><th>Total Estimated Price</th><td>' + (poData.totalEstimatedPrice || '') + '</td></tr>';
+            html += '</table>';
+
+            // Order Audit Log
+            html += '<h3>Order Audit Log</h3>';
+            html += renderAuditTable(auditData.order, [
+                { key: 'id', label: 'Audit ID' },
+                { key: 'action', label: 'Action' },
+                { key: 'orderId', label: 'Order ID' },
+                { key: 'userId', label: 'User ID' },
+                { key: 'eventDate', label: 'Event Date' },
+                { key: 'actionDate', label: 'Action Date' },
+                { key: 'orderSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'order')}</pre>` }
+            ], 'order');
+
+            // Order Lines
+            html += '<h3>Order Lines</h3>';
+            auditData.orderLines.forEach(({ line, audit }, index) => {
+                html += `<h4>Order Line ${index + 1}: ${line.poLineNumber}</h4>`;
+                html += '<table class="po-details">';
+                html += '<tr><th>Order Line ID</th><td>' + (line.id || '') + '</td></tr>';
+                html += '<tr><th>Order Line Number</th><td>' + (line.poLineNumber || '') + '</td></tr>';
+                html += '<tr><th>Title or Package</th><td>' + (line.titleOrPackage || '') + '</td></tr>';
+                html += '<tr><th>Unit Price</th><td>' + (line.cost?.listUnitPrice || '') + '</td></tr>';
+                html += '</table>';
+                html += renderAuditTable(audit, [
+                    { key: 'id', label: 'Audit ID' },
+                    { key: 'action', label: 'Action' },
+                    { key: 'orderLineId', label: 'Order Line ID' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'eventDate', label: 'Event Date' },
+                    { key: 'actionDate', label: 'Action Date' },
+                    { key: 'orderLineSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'orderLine')}</pre>` }
+                ], 'orderLine');
+            });
+
+            // Pieces
+            html += '<h3>Pieces</h3>';
+            auditData.pieces.forEach(({ piece, audit }, index) => {
+                html += `<h4>Piece ${index + 1}</h4>`;
+                html += '<table class="po-details">';
+                html += '<tr><th>Piece ID</th><td>' + (piece.id || '') + '</td></tr>';
+                html += '<tr><th>Receiving Status</th><td>' + (piece.receivingStatus || '') + '</td></tr>';
+                html += '</table>';
+                html += renderAuditTable(audit, [
+                    { key: 'id', label: 'Audit ID' },
+                    { key: 'action', label: 'Action' },
+                    { key: 'pieceId', label: 'Piece ID' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'eventDate', label: 'Event Date' },
+                    { key: 'actionDate', label: 'Action Date' },
+                    { key: 'pieceSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'piece')}</pre>` }
+                ], 'piece');
+                const statusChanges = auditData.pieceStatusChanges[index]?.audit || [];
+                html += '<h4>Piece Status Change History</h4>';
+                html += renderAuditTable(statusChanges, [
+                    { key: 'id', label: 'Audit ID' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'pieceId', label: 'Piece ID' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'eventDate', label: 'Event Date' },
+                    { key: 'actionDate', label: 'Action Date' },
+                    { key: 'pieceSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'pieceStatusChange')}</pre>` }
+                ], 'pieceStatusChange');
+            });
+
+            // Invoices
+            html += '<h3>Invoices</h3>';
+            auditData.invoices.forEach(({ invoice, audit }, index) => {
+                html += `<h4>Invoice ${index + 1}: ${invoice.invoiceNumber}</h4>`;
+                html += '<table class="po-details">';
+                html += '<tr><th>Invoice ID</th><td>' + (invoice.id || '') + '</td></tr>';
+                html += '<tr><th>Invoice Number</th><td>' + (invoice.invoiceNumber || '') + '</td></tr>';
+                html += '<tr><th>Status</th><td>' + (invoice.status || '') + '</td></tr>';
+                html += '</table>';
+                html += renderAuditTable(audit, [
+                    { key: 'id', label: 'Audit ID' },
+                    { key: 'action', label: 'Action' },
+                    { key: 'invoiceId', label: 'Invoice ID' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'eventDate', label: 'Event Date' },
+                    { key: 'actionDate', label: 'Action Date' },
+                    { key: 'invoiceSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'invoice')}</pre>` }
+                ], 'invoice');
+            });
+
+            // Invoice Lines
+            html += '<h3>Invoice Lines</h3>';
+            auditData.invoiceLines.forEach(({ line, audit }, index) => {
+                html += `<h4>Invoice Line ${index + 1}</h4>`;
+                html += '<table class="po-details">';
+                html += '<tr><th>Invoice Line ID</th><td>' + (line.id || '') + '</td></tr>';
+                html += '<tr><th>Invoice Line Number</th><td>' + (line.invoiceLineNumber || '') + '</td></tr>';
+                html += '<tr><th>Description</th><td>' + (line.description || '') + '</td></tr>';
+                html += '</table>';
+                html += renderAuditTable(audit, [
+                    { key: 'id', label: 'Audit ID' },
+                    { key: 'action', label: 'Action' },
+                    { key: 'invoiceLineId', label: 'Invoice Line ID' },
+                    { key: 'userId', label: 'User ID' },
+                    { key: 'eventDate', label: 'Event Date' },
+                    { key: 'actionDate', label: 'Action Date' },
+                    { key: 'invoiceLineSnapshot', label: 'Snapshot', format: (val) => `<pre>${summarizeSnapshot(val, 'invoiceLine')}</pre>` }
+                ], 'invoiceLine');
+            });
+
+            html += '</div>';
+            elements.poDetails.innerHTML = html;
+            elements.resultsContainer.classList.remove('hidden');
+            logMessage('info', `Displayed history for PO ${poData.poNumber}.`);
+        }
+
+        // Render Audit Table
+        function renderAuditTable(auditRecords, columns, entityType) {
+            if (!auditRecords || auditRecords.length === 0) return '<p>No audit records available.</p>';
+            let html = '<table class="audit-table"><thead><tr>';
+            columns.forEach(col => html += `<th>${col.label}</th>`);
+            html += '</tr></thead><tbody>';
+            auditRecords.forEach(record => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    let value = record[col.key] || '';
+                    if (col.format) {
+                        value = col.format(record[col.key]);
+                    } else if (typeof value === 'object') {
+                        value = JSON.stringify(value, null, 2).replace(/</g, '<').replace(/>/g, '>');
+                        value = `<pre>${value}</pre>`;
+                    }
+                    html += `<td>${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
+        // Export to CSV
+        function exportToCSV() {
+            if (!poData) {
+                logMessage('failure', 'No PO data to export.');
+                return;
+            }
+
+            let csv = 'Section,Field,Value\n';
+            csv += `Purchase Order,Purchase Order ID,${poData.id || ''}\n`;
+            csv += `Purchase Order,Purchase Order Number,${poData.poNumber || ''}\n`;
+            csv += `Purchase Order,Date Ordered,${poData.dateOrdered || ''}\n`;
+            csv += `Purchase Order,Created Date,${poData.createdDate || ''}\n`;
+            csv += `Purchase Order,Vendor ID,${poData.vendor || ''}\n`;
+            csv += `Purchase Order,Workflow Status,${poData.workflowStatus || ''}\n`;
+            csv += `Purchase Order,Total Estimated Price,${poData.totalEstimatedPrice || ''}\n`;
+
+            auditData.order.forEach((record, i) => {
+                csv += `Order Audit ${i + 1},Audit ID,${record.id || ''}\n`;
+                csv += `Order Audit ${i + 1},Action,${record.action || ''}\n`;
+                csv += `Order Audit ${i + 1},Order ID,${record.orderId || ''}\n`;
+                csv += `Order Audit ${i + 1},User ID,${record.userId || ''}\n`;
+                csv += `Order Audit ${i + 1},Event Date,${record.eventDate || ''}\n`;
+                csv += `Order Audit ${i + 1},Action Date,${record.actionDate || ''}\n`;
+                csv += `Order Audit ${i + 1},Snapshot,"${JSON.stringify(record.orderSnapshot || {}).replace(/"/g, '""')}"\n`;
+            });
+
+            auditData.orderLines.forEach(({ line, audit }, i) => {
+                csv += `Order Line ${i + 1},Order Line ID,${line.id || ''}\n`;
+                csv += `Order Line ${i + 1},Order Line Number,${line.poLineNumber || ''}\n`;
+                csv += `Order Line ${i + 1},Title or Package,${line.titleOrPackage || ''}\n`;
+                csv += `Order Line ${i + 1},Unit Price,${line.cost?.listUnitPrice || ''}\n`;
+                audit.forEach((record, j) => {
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Audit ID,${record.id || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Action,${record.action || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Order Line ID,${record.orderLineId || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},User ID,${record.userId || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Event Date,${record.eventDate || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Action Date,${record.actionDate || ''}\n`;
+                    csv += `Order Line Audit ${i + 1}.${j + 1},Snapshot,"${JSON.stringify(record.orderLineSnapshot || {}).replace(/"/g, '""')}"\n`;
+                });
+            });
+
+            auditData.pieces.forEach(({ piece, audit }, i) => {
+                csv += `Piece ${i + 1},Piece ID,${piece.id || ''}\n`;
+                csv += `Piece ${i + 1},Receiving Status,${piece.receivingStatus || ''}\n`;
+                audit.forEach((record, j) => {
+                    csv += `Piece Audit ${i + 1}.${j + 1},Audit ID,${record.id || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},Action,${record.action || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},Piece ID,${record.pieceId || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},User ID,${record.userId || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},Event Date,${record.eventDate || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},Action Date,${record.actionDate || ''}\n`;
+                    csv += `Piece Audit ${i + 1}.${j + 1},Snapshot,"${JSON.stringify(record.pieceSnapshot || {}).replace(/"/g, '""')}"\n`;
+                });
+                const statusChanges = auditData.pieceStatusChanges[i]?.audit || [];
+                statusChanges.forEach((record, j) => {
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Audit ID,${record.id || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Status,${record.status || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Piece ID,${record.pieceId || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},User ID,${record.userId || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Event Date,${record.eventDate || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Action Date,${record.actionDate || ''}\n`;
+                    csv += `Piece Status Change ${i + 1}.${j + 1},Snapshot,"${JSON.stringify(record.pieceSnapshot || {}).replace(/"/g, '""')}"\n`;
+                });
+            });
+
+            auditData.invoices.forEach(({ invoice, audit }, i) => {
+                csv += `Invoice ${i + 1},Invoice ID,${invoice.id || ''}\n`;
+                csv += `Invoice ${i + 1},Invoice Number,${invoice.invoiceNumber || ''}\n`;
+                csv += `Invoice ${i + 1},Status,${invoice.status || ''}\n`;
+                audit.forEach((record, j) => {
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Audit ID,${record.id || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Action,${record.action || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Invoice ID,${record.invoiceId || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},User ID,${record.userId || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Event Date,${record.eventDate || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Action Date,${record.actionDate || ''}\n`;
+                    csv += `Invoice Audit ${i + 1}.${j + 1},Snapshot,"${JSON.stringify(record.invoiceSnapshot || {}).replace(/"/g, '""')}"\n`;
+                });
+            });
+
+            auditData.invoiceLines.forEach(({ line, audit }, i) => {
+                csv += `Invoice Line ${i + 1},Invoice Line ID,${line.id || ''}\n`;
+                csv += `Invoice Line ${i + 1},Invoice Line Number,${line.invoiceLineNumber || ''}\n`;
+                csv += `Invoice Line ${i + 1},Description,${line.description || ''}\n`;
+                audit.forEach((record, j) => {
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Audit ID,${record.id || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Action,${record.action || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Invoice Line ID,${record.invoiceLineId || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},User ID,${record.userId || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Event Date,${record.eventDate || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Action Date,${record.actionDate || ''}\n`;
+                    csv += `Invoice Line Audit ${i + 1}.${j + 1},Snapshot,"${JSON.stringify(record.invoiceLineSnapshot || {}).replace(/"/g, '""')}"\n`;
+                });
+            });
+
+            downloadFile(csv, `po_history_${poData.poNumber}.csv`, 'text/csv');
+            logMessage('success', `Exported PO ${poData.poNumber} history to CSV.`);
+        }
+
+        // Export to JSON
+        function exportToJSON() {
+            if (!poData) {
+                logMessage('failure', 'No PO data to export.');
+                return;
+            }
+
+            const exportData = {
+                purchaseOrder: {
+                    id: poData.id,
+                    poNumber: poData.poNumber,
+                    dateOrdered: poData.dateOrdered,
+                    createdDate: poData.createdDate,
+                    vendorId: poData.vendor,
+                    workflowStatus: poData.workflowStatus,
+                    totalEstimatedPrice: poData.totalEstimatedPrice,
+                    audit: auditData.order
+                },
+                orderLines: auditData.orderLines.map(({ line, audit }) => ({
+                    id: line.id,
+                    poLineNumber: line.poLineNumber,
+                    titleOrPackage: line.titleOrPackage,
+                    unitPrice: line.cost?.listUnitPrice,
+                    audit
+                })),
+                pieces: auditData.pieces.map(({ piece, audit }, i) => ({
+                    id: piece.id,
+                    receivingStatus: piece.receivingStatus,
+                    audit,
+                    statusChanges: auditData.pieceStatusChanges[i]?.audit || []
+                })),
+                invoices: auditData.invoices.map(({ invoice, audit }) => ({
+                    id: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    status: invoice.status,
+                    audit
+                })),
+                invoiceLines: auditData.invoiceLines.map(({ line, audit }) => ({
+                    id: line.id,
+                    invoiceLineNumber: line.invoiceLineNumber,
+                    description: line.description,
+                    audit
+                }))
+            };
+
+            const json = JSON.stringify(exportData, null, 2);
+            downloadFile(json, `po_history_${poData.poNumber}.json`, 'application/json');
+            logMessage('success', `Exported PO ${poData.poNumber} history to JSON.`);
+        }
+
+        // Download File
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Toggle Button State
+        function toggleButtonState(disable, formType) {
+            try {
+                if (formType === 'auth') {
+                    elements.authButton.disabled = disable;
+                } else if (formType === 'tenantAuth') {
+                    elements.tenantAuthButton.disabled = disable;
+                } else if (formType === 'view') {
+                    elements.viewButton.disabled = disable;
+                }
+            } catch (err) {
+                console.error('Toggle button state error:', err);
+                logMessage('failure', `Button state error: ${err.message}`);
+            }
+        }
+
+        // Token Validation
+        function isTokenValid() {
+            if (!okapiToken || (tokenExpiration && Date.now() >= tokenExpiration)) {
+                return false;
+            }
+            return true;
+        }
+
+        // Check Token Expiration
+        function checkTokenExpiration() {
+            if (okapiToken && tokenExpiration && Date.now() >= tokenExpiration) {
+                logMessage('failure', "Tenant session expired. Please authenticate again.");
+                elements.tenantAuthForm.classList.remove('hidden');
+                elements.tenantAuthButtonContainer.classList.remove('hidden');
+                elements.poSelectionForm.classList.add('hidden');
+                elements.resultsContainer.classList.add('hidden');
+            }
+        }
+
+        // Save Endpoint
+        function saveEndpoint() {
+            try {
+                const value = `${elements.endpointUrl.value}|${elements.tenantId.value}`;
+                localStorage.setItem('lastEndpoint', value);
+                logMessage('info', 'Endpoint saved to local storage.');
+            } catch (err) {
+                console.error('Save endpoint error:', err);
+                logMessage('failure', `Save endpoint error: ${err.message}`);
+            }
+        }
+
+        // Load Endpoint
+        function loadEndpoint() {
+            try {
+                const saved = localStorage.getItem('lastEndpoint');
+                if (saved) {
+                    const [url, tenant] = saved.split("|");
+                    elements.endpointUrl.value = url || elements.endpointUrl.placeholder;
+                    elements.tenantId.value = tenant || elements.tenantId.placeholder;
+                    logMessage('info', 'Loaded saved endpoint.');
+                }
+            } catch (err) {
+                console.error('Load endpoint error:', err);
+                logMessage('failure', `Load endpoint error: ${err.message}`);
+            }
+        }
+
+        // Fetch with Retry
+        async function fetchWithRetry(url, options, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    return response;
+                } catch (err) {
+                    if (i === retries - 1) {
+                        logMessage('failure', `Fetch error after ${retries} retries: ${err.message}`);
+                        throw err;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+                }
+            }
+        }
+
+        // Input Sanitization
+        function sanitizeInput(input) {
+            try {
+                const div = document.createElement('div');
+                div.textContent = input;
+                return div.innerHTML;
+            } catch (err) {
+                console.error('Sanitize input error:', err);
+                logMessage('failure', `Sanitize input error: ${err.message}`);
+                return input;
+            }
+        }
+    </script>
+</body>
+</html>
