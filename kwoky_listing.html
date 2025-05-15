@@ -95,7 +95,7 @@
             height: 150px;
             object-fit: cover;
             border-radius: 4px;
-            background: #eee; /* Light background for spinner */
+            background: #eee;
         }
         .instance-card .content {
             flex: 1;
@@ -155,7 +155,7 @@
                 <text x="50" y="35" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">No Cover</text>
                 <rect x="10" y="60" width="80" height="80" fill="#cccccc"/>
             </svg>
-        `); // Embedded SVG placeholder
+        `);
         const spinnerImage = 'data:image/svg+xml;base64,' + btoa(`
             <svg xmlns="http://www.w3.org/2000/svg" width="100" height="150" viewBox="0 0 100 150">
                 <rect x="0" y="0" width="100" height="150" fill="#eee"/>
@@ -163,12 +163,14 @@
                     <animateTransform attributeName="transform" type="rotate" from="0 50 75" to="360 50 75" dur="1s" repeatCount="indefinite"/>
                 </circle>
             </svg>
-        `); // Embedded SVG spinner
+        `);
         let apiToken = null;
+        let lastUsername = null;
+        let lastPassword = null;
         let currentResults = [];
-        let currentSearchParams = null; // Store searchParams for use in displayPage and exportResults
+        let currentSearchParams = null;
         const itemsPerPage = 100;
-        const imageSizeCache = new Map(); // Cache for image sizes
+        const imageSizeCache = new Map();
 
         function fillDemoParams() {
             const demoParams = {
@@ -178,7 +180,7 @@
                 password: 'admin',
                 instanceUrl: 'https://folio-snapshot.dev.folio.org/inventory/view/',
                 tags: [],
-                subjects: ['fiction','music', 'art']
+                subjects: ['fiction', 'music', 'art']
             };
             document.getElementById('searchParams').value = JSON.stringify(demoParams, null, 2);
         }
@@ -240,15 +242,14 @@
 
         async function getBookJacketUrl(identifiers) {
             const identifierTypes = [
-                { typeId: '8261054f-be78-422d-bd51-4ed9f33c3422', key: 'isbn', source: 'openlibrary' }, // ISBN for Open Library
-                { typeId: 'f90864f3-8d9b-442f-91f9-3fa830f086f8', key: 'oclc', source: 'openlibrary' }, // OCLC
-                { typeId: 'c858e4f2-2b6b-4385-842b-60732ee14abb', key: 'lccn', source: 'openlibrary' }  // LCCN
+                { typeId: '8261054f-be78-422d-bd51-4ed9f33c3422', key: 'isbn', source: 'openlibrary' },
+                { typeId: 'f90864f3-8d9b-442f-91f9-3fa830f086f8', key: 'oclc', source: 'openlibrary' },
+                { typeId: 'c858e4f2-2b6b-4385-842b-60732ee14abb', key: 'lccn', source: 'openlibrary' }
             ];
 
-            // Try Open Library sources first
             for (const { typeId, key, source } of identifierTypes) {
                 const idObj = identifiers?.find(id => id.identifierTypeId === typeId);
-                const value = idObj?.value?.replace(/-|\s/g, ''); // Remove hyphens and spaces
+                const value = idObj?.value?.replace(/-|\s/g, '');
                 if (value && source === 'openlibrary') {
                     const url = `${openLibraryCoverBaseUrl}${key}/${value}-M.jpg`;
                     const size = await checkImageSize(url);
@@ -259,9 +260,8 @@
                 }
             }
 
-            // Fallback to Amazon using ISBN
             const isbnObj = identifiers?.find(id => id.identifierTypeId === '8261054f-be78-422d-bd51-4ed9f33c3422');
-            const isbn = isbnObj?.value?.replace(/-|\s/g, ''); // Remove hyphens and spaces
+            const isbn = isbnObj?.value?.replace(/-|\s/g, '');
             if (isbn) {
                 const url = `${amazonCoverBaseUrl}${isbn}.01._SCLZZZZZZZ_.jpg`;
                 const size = await checkImageSize(url);
@@ -287,10 +287,10 @@
                             instance.bookJacketSource = url === placeholderImage ? 'Embedded SVG Placeholder' : url;
                             img.src = url;
                         }
-                        observer.unobserve(img); // Stop observing once loaded
+                        observer.unobserve(img);
                     }
                 });
-            }, { rootMargin: '0px 0px 100px 0px' }); // Preload slightly before visible
+            }, { rootMargin: '0px 0px 100px 0px' });
 
             instances.forEach(instance => {
                 const img = document.querySelector(`.instance-card[data-instance-id="${instance.id}"] img`);
@@ -312,7 +312,6 @@
                     resultsDiv.innerHTML = '<span class="error">Error: JSON must include endpoint, tenant, username, password, instanceUrl, tags (array), and subjects (array).</span>';
                     return;
                 }
-                // Basic URL validation for instanceUrl
                 if (!searchParams.instanceUrl.match(/^https?:\/\//)) {
                     resultsDiv.innerHTML = '<span class="error">Error: instanceUrl must be a valid URL starting with http:// or https://.</span>';
                     return;
@@ -322,9 +321,19 @@
                 return;
             }
 
+            // Check if username or password has changed
+            if (apiToken && (searchParams.username !== lastUsername || searchParams.password !== lastPassword)) {
+                apiToken = null; // Invalidate token to force re-login
+                authStatus.innerHTML = '<span class="loading">Credentials changed. Re-authenticating...</span>';
+            }
+
+            // Perform login if no token or credentials changed
             if (!apiToken) {
                 const loggedIn = await login(searchParams);
                 if (!loggedIn) return;
+                // Store the credentials used for this login
+                lastUsername = searchParams.username;
+                lastPassword = searchParams.password;
             }
 
             const tags = searchParams.tags.filter(tag => tag.trim()).map(tag => tag.trim());
@@ -365,43 +374,67 @@
                         'X-Okapi-Token': apiToken
                     }
                 });
-                if (!response.ok) {
+                if (response.status === 401) {
+                    // Token invalid, try re-authenticating
+                    apiToken = null;
+                    authStatus.innerHTML = '<span class="loading">Token expired. Re-authenticating...</span>';
+                    const loggedIn = await login(searchParams);
+                    if (!loggedIn) return;
+                    lastUsername = searchParams.username;
+                    lastPassword = searchParams.password;
+                    // Retry the request
+                    const retryResponse = await fetch(instancesUrl, {
+                        headers: {
+                            'X-Okapi-Tenant': searchParams.tenant,
+                            'X-Okapi-Token': apiToken
+                        }
+                    });
+                    if (!retryResponse.ok) {
+                        const text = await retryResponse.text();
+                        console.error('Retry instances fetch failed:', retryResponse.status, text);
+                        throw new Error(`Instances fetch failed: ${retryResponse.status} - ${text}`);
+                    }
+                    const data = await retryResponse.json();
+                    processResults(data, searchParams, offset);
+                } else if (!response.ok) {
                     const text = await response.text();
                     console.error('Instances fetch failed:', response.status, text);
                     throw new Error(`Instances fetch failed: ${response.status} - ${text}`);
+                } else {
+                    const data = await response.json();
+                    processResults(data, searchParams, offset);
                 }
-                const data = await response.json();
-
-                // Remove duplicates by instance ID
-                const uniqueInstances = [];
-                const seenIds = new Set();
-                for (const instance of data.instances) {
-                    if (!seenIds.has(instance.id)) {
-                        seenIds.add(instance.id);
-                        uniqueInstances.push({
-                            id: instance.id || 'Unknown',
-                            title: instance.title || 'Unknown',
-                            tags: instance.tags?.tagList?.join(', ') || 'None',
-                            subjects: instance.subjects?.map(s => s.value || s).join(', ') || 'None',
-                            contributors: instance.contributors?.map(c => c.name).join(', ') || 'None',
-                            publication: instance.publication?.[0]?.publisher || 'Unknown',
-                            publicationYear: instance.publication?.[0]?.dateOfPublication || 'Unknown',
-                            identifiers: instance.identifiers, // Store for lazy loading
-                            bookJacketUrl: null, // Set later
-                            bookJacketSource: 'Loading...' // Temporary for CSV export
-                        });
-                    }
-                }
-
-                currentResults = uniqueInstances;
-                currentSearchParams = searchParams; // Store for use in displayPage and exportResults
-                displayPage(offset, data.totalRecords);
-                // Start lazy loading cover images
-                loadCoverImages(currentResults);
             } catch (error) {
                 console.error('Search error:', error);
                 resultsDiv.innerHTML = `<span class="error">Error: ${error.message}. Check console for details.</span>`;
             }
+        }
+
+        function processResults(data, searchParams, offset) {
+            const uniqueInstances = [];
+            const seenIds = new Set();
+            for (const instance of data.instances) {
+                if (!seenIds.has(instance.id)) {
+                    seenIds.add(instance.id);
+                    uniqueInstances.push({
+                        id: instance.id || 'Unknown',
+                        title: instance.title || 'Unknown',
+                        tags: instance.tags?.tagList?.join(', ') || 'None',
+                        subjects: instance.subjects?.map(s => s.value || s).join(', ') || 'None',
+                        contributors: instance.contributors?.map(c => c.name).join(', ') || 'None',
+                        publication: instance.publication?.[0]?.publisher || 'Unknown',
+                        publicationYear: instance.publication?.[0]?.dateOfPublication || 'Unknown',
+                        identifiers: instance.identifiers,
+                        bookJacketUrl: null,
+                        bookJacketSource: 'Loading...'
+                    });
+                }
+            }
+
+            currentResults = uniqueInstances;
+            currentSearchParams = searchParams;
+            displayPage(offset, data.totalRecords);
+            loadCoverImages(currentResults);
         }
 
         function displayPage(offset, totalRecords) {
@@ -465,7 +498,7 @@
                 instance.id,
                 `"${instance.title.replace(/"/g, '""')}"`,
                 `"${currentSearchParams.instanceUrl}${instance.id}"`,
-                `"${instance.bookJacketSource}"`, // May be 'Loading...' if not yet loaded
+                `"${instance.bookJacketSource}"`,
                 `"${instance.tags.replace(/"/g, '""')}"`,
                 `"${instance.subjects.replace(/"/g, '""')}"`,
                 `"${instance.contributors.replace(/"/g, '""')}"`,
