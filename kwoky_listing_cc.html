@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Instance Search Application</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .button-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        #authStatus, .error {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .error {
+            color: #e74c3c;
+        }
+        .loading {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        #results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .instance-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: #fff;
+            display: flex;
+            gap: 15px;
+        }
+        .instance-card img {
+            width: 100px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #eee;
+        }
+        .instance-card .content {
+            flex: 1;
+        }
+        .instance-card h3 {
+            margin: 0 0 10px;
+            color: #34495e;
+            font-size: 18px;
+        }
+        .instance-card h3 a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .instance-card h3 a:hover {
+            text-decoration: underline;
+        }
+        .instance-card p {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+        .instance-card strong {
+            color: #2c3e50;
+        }
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 8px 14px;
+            min-width: 32px;
+        }
+    </style>
+</head>
+<body>
+    <h1>FOLIO Instance Search Application</h1>
+    <div class="form-container">
+        <label for="searchParams">Search Parameters (JSON):</label>
+        <textarea id="searchParams" placeholder='Example: {"endpoint": "https://folio-snapshot-okapi.dev.folio.org", "tenant": "diku", "username": "diku_admin", "password": "admin", "instanceUrl": "https://folio-snapshot.dev.folio.org/inventory/view/", "tags": ["fiction"], "subjects": ["History America"]}'>{"endpoint": "", "tenant": "", "username": "", "password": "", "instanceUrl": "", "tags": [], "subjects": []}</textarea>
+        <div class="button-group">
+            <button onclick="fillDemoParams()">Demo</button>
+            <button onclick="searchInstances(0)">Search</button>
+            <button onclick="exportResults()">Export to CSV</button>
+        </div>
+        <div id="authStatus"></div>
+    </div>
+    <div id="results"></div>
+    <div id="pagination" class="pagination"></div>
+
+    <script>
+        const contentCafeCoverBaseUrl = 'https://contentcafe2.btol.com/ContentCafe/jacket.aspx';
+        const placeholderImage = 'data:image/svg+xml;base64,' + btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="100" height="150" viewBox="0 0 100 150">
+                <rect x="0" y="0" width="100" height="150" fill="#4a4a4a"/>
+                <rect x="10" y="20" width="80" height="30" fill="#ffffff"/>
+                <text x="50" y="35" font-family="Arial, sans-serif" font-size="10" fill="#333" text-anchor="middle">No Cover</text>
+                <rect x="10" y="60" width="80" height="80" fill="#cccccc"/>
+            </svg>
+        `);
+        const spinnerImage = 'data:image/svg+xml;base64,' + btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="100" height="150" viewBox="0 0 100 150">
+                <rect x="0" y="0" width="100" height="150" fill="#eee"/>
+                <circle cx="50" cy="75" r="20" fill="none" stroke="#3498db" stroke-width="4">
+                    <animateTransform attributeName="transform" type="rotate" from="0 50 75" to="360 50 75" dur="1s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+        `);
+        let apiToken = null;
+        let lastUsername = null;
+        let lastPassword = null;
+        let currentResults = [];
+        let currentSearchParams = null;
+        const itemsPerPage = 100;
+        const imageSizeCache = new Map();
+
+        function fillDemoParams() {
+            const demoParams = {
+                endpoint: 'https://folio-snapshot-okapi.dev.folio.org',
+                tenant: 'diku',
+                username: 'diku_admin',
+                password: 'admin',
+                instanceUrl: 'https://folio-snapshot.dev.folio.org/inventory/view/',
+                tags: [],
+                subjects: ['fiction', 'music', 'art']
+            };
+            document.getElementById('searchParams').value = JSON.stringify(demoParams, null, 2);
+        }
+
+        async function login(searchParams) {
+            const authStatus = document.getElementById('authStatus');
+            const { endpoint, tenant, username, password } = searchParams;
+
+            if (!endpoint || !tenant || !username || !password) {
+                authStatus.innerHTML = '<span class="error">Error: JSON must include endpoint, tenant, username, and password.</span>';
+                return false;
+            }
+
+            authStatus.innerHTML = '<span class="loading">Logging in...</span>';
+            try {
+                const response = await fetch(`${endpoint}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Okapi-Tenant': tenant
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Login failed:', response.status, text);
+                    throw new Error(`Login failed: ${response.status} - ${text}`);
+                }
+                apiToken = response.headers.get('X-Okapi-Token');
+                authStatus.innerHTML = 'Login successful!';
+                return true;
+            } catch (error) {
+                console.error('Login error:', error);
+                authStatus.innerHTML = `<span class="error">Error: ${error.message}. Check console for details.</span>`;
+                return false;
+            }
+        }
+
+        function getBookJacketUrl(identifiers) {
+            const isbnObj = identifiers?.find(id => id.identifierTypeId === '8261054f-be78-422d-bd51-4ed9f33c3422');
+            const isbnRaw = isbnObj?.value?.replace(/-|\s/g, '');
+            const isbn = isbnRaw?.match(/^\d{10,13}/)?.[0]; // Extract 10- or 13-digit ISBN
+            if (isbn) {
+                const url = `${contentCafeCoverBaseUrl}?UserID=ebsco-test&Password=ebsco-test&Return=T&Type=M&Value=${isbn}`;
+                return url;
+            }
+            return placeholderImage;
+        }
+
+        async function loadCoverImages(instances) {
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        const instanceId = img.closest('.instance-card').dataset.instanceId;
+                        const instance = instances.find(inst => inst.id === instanceId);
+                        if (!instance.bookJacketUrl) {
+                            const url = getBookJacketUrl(instance.identifiers);
+                            instance.bookJacketUrl = url;
+                            instance.bookJacketSource = url === placeholderImage ? 'Embedded SVG Placeholder' : url;
+                            img.src = url;
+                            // Handle image load errors
+                            img.onerror = () => {
+                                img.src = placeholderImage;
+                                instance.bookJacketSource = 'Embedded SVG Placeholder';
+                            };
+                        }
+                        observer.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '0px 0px 100px 0px' });
+
+            instances.forEach(instance => {
+                const img = document.querySelector(`.instance-card[data-instance-id="${instance.id}"] img`);
+                if (img) {
+                    observer.observe(img);
+                }
+            });
+        }
+
+        async function searchInstances(offset = 0) {
+            const authStatus = document.getElementById('authStatus');
+            const resultsDiv = document.getElementById('results');
+            let searchParams;
+            try {
+                searchParams = JSON.parse(document.getElementById('searchParams').value);
+                if (!searchParams.endpoint || !searchParams.tenant || !searchParams.username || 
+                    !searchParams.password || !searchParams.instanceUrl || 
+                    !Array.isArray(searchParams.tags) || !Array.isArray(searchParams.subjects)) {
+                    resultsDiv.innerHTML = '<span class="error">Error: JSON must include endpoint, tenant, username, password, instanceUrl, tags (array), and subjects (array).</span>';
+                    return;
+                }
+                if (!searchParams.instanceUrl.match(/^https?:\/\//)) {
+                    resultsDiv.innerHTML = '<span class="error">Error: instanceUrl must be a valid URL starting with http:// or https://.</span>';
+                    return;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<span class="error">Error: Invalid JSON format.</span>';
+                return;
+            }
+
+            if (apiToken && (searchParams.username !== lastUsername || searchParams.password !== lastPassword)) {
+                apiToken = null;
+                authStatus.innerHTML = '<span class="loading">Credentials changed. Re-authenticating...</span>';
+            }
+
+            if (!apiToken) {
+                const loggedIn = await login(searchParams);
+                if (!loggedIn) return;
+                lastUsername = searchParams.username;
+                lastPassword = searchParams.password;
+            }
+
+            const tags = searchParams.tags.filter(tag => tag.trim()).map(tag => tag.trim());
+            const subjects = searchParams.subjects.filter(subject => subject.trim()).map(subject => subject.trim());
+            const hasTags = tags.length > 0;
+            const hasSubjects = subjects.length > 0;
+
+            if (!hasTags && !hasSubjects) {
+                resultsDiv.innerHTML = '<span class="error">Error: Please provide at least one tag or subject.</span>';
+                currentResults = [];
+                displayPage(0, 0);
+                return;
+            }
+
+            let cqlQueryParts = [];
+            if (hasTags) {
+                cqlQueryParts.push(`(${tags.map(tag => `itemTags=="${tag}"`).join(" OR ")})`);
+            }
+            if (hasSubjects) {
+                cqlQueryParts.push(`(${subjects.map(subject => `subjects="${subject}"`).join(" OR ")})`);
+            }
+
+            const cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "";
+            if (!cqlQuery) {
+                resultsDiv.innerHTML = '<span class="error">Error: No valid search criteria provided.</span>';
+                currentResults = [];
+                displayPage(0, 0);
+                return;
+            }
+
+            const instancesUrl = `${searchParams.endpoint}/search/instances?expandAll=true&query=${encodeURIComponent(cqlQuery)}&limit=${itemsPerPage}&offset=${offset}&sortby=title`;
+            resultsDiv.innerHTML = '<span class="loading">Loading instances...</span>';
+            try {
+                console.log('Fetching instances:', instancesUrl);
+                const response = await fetch(instancesUrl, {
+                    headers: {
+                        'X-Okapi-Tenant': searchParams.tenant,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (response.status === 401) {
+                    apiToken = null;
+                    authStatus.innerHTML = '<span class="loading">Token expired. Re-authenticating...</span>';
+                    const loggedIn = await login(searchParams);
+                    if (!loggedIn) return;
+                    lastUsername = searchParams.username;
+                    lastPassword = searchParams.password;
+                    const retryResponse = await fetch(instancesUrl, {
+                        headers: {
+                            'X-Okapi-Tenant': searchParams.tenant,
+                            'X-Okapi-Token': apiToken
+                        }
+                    });
+                    if (!retryResponse.ok) {
+                        const text = await retryResponse.text();
+                        console.error('Retry instances fetch failed:', retryResponse.status, text);
+                        throw new Error(`Instances fetch failed: ${retryResponse.status} - ${text}`);
+                    }
+                    const data = await retryResponse.json();
+                    processResults(data, searchParams, offset);
+                } else if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Instances fetch failed:', response.status, text);
+                    throw new Error(`Instances fetch failed: ${response.status} - ${text}`);
+                } else {
+                    const data = await response.json();
+                    processResults(data, searchParams, offset);
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = `<span class="error">Error: ${error.message}. Check console for details.</span>`;
+            }
+        }
+
+        function processResults(data, searchParams, offset) {
+            const uniqueInstances = [];
+            const seenIds = new Set();
+            for (const instance of data.instances) {
+                if (!seenIds.has(instance.id)) {
+                    seenIds.add(instance.id);
+                    uniqueInstances.push({
+                        id: instance.id || 'Unknown',
+                        title: instance.title || 'Unknown',
+                        tags: instance.tags?.tagList?.join(', ') || 'None',
+                        subjects: instance.subjects?.map(s => s.value || s).join(', ') || 'None',
+                        contributors: instance.contributors?.map(c => c.name).join(', ') || 'None',
+                        publication: instance.publication?.[0]?.publisher || 'Unknown',
+                        publicationYear: instance.publication?.[0]?.dateOfPublication || 'Unknown',
+                        identifiers: instance.identifiers,
+                        bookJacketUrl: null,
+                        bookJacketSource: 'Loading...'
+                    });
+                }
+            }
+
+            currentResults = uniqueInstances;
+            currentSearchParams = searchParams;
+            displayPage(offset, data.totalRecords);
+            loadCoverImages(currentResults);
+        }
+
+        function displayPage(offset, totalRecords) {
+            const resultsDiv = document.getElementById('results');
+            const start = offset;
+            const end = Math.min(start + itemsPerPage, currentResults.length);
+            const pageItems = currentResults.slice(start, end);
+
+            let resultsHtml = `
+                <p><strong>Total Instances:</strong> ${totalRecords} | <strong>Showing:</strong> ${start + 1}-${end} of ${currentResults.length} unique instances</p>
+            `;
+            if (currentResults.length === 0) {
+                resultsHtml = '<p>No instances found.</p>';
+            } else {
+                pageItems.forEach(instance => {
+                    resultsHtml += `
+                        <div class="instance-card" data-instance-id="${instance.id}">
+                            <img src="${spinnerImage}" alt="Loading book jacket for ${instance.title}">
+                            <div class="content">
+                                <h3><a href="${currentSearchParams.instanceUrl}${instance.id}" target="_blank">${instance.title}</a></h3>
+                                <p><strong>ID:</strong> ${instance.id}</p>
+                                <p><strong>Tags:</strong> ${instance.tags}</p>
+                                <p><strong>Subjects:</strong> ${instance.subjects}</p>
+                                <p><strong>Contributors:</strong> ${instance.contributors}</p>
+                                <p><strong>Publisher:</strong> ${instance.publication}</p>
+                                <p><strong>Publication Year:</strong> ${instance.publicationYear}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            resultsDiv.innerHTML = resultsHtml;
+            updatePagination(offset, totalRecords);
+        }
+
+        function updatePagination(offset, totalRecords) {
+            const paginationDiv = document.getElementById('pagination');
+            const totalPages = Math.ceil(currentResults.length / itemsPerPage);
+            const currentPage = Math.floor(offset / itemsPerPage) + 1;
+
+            let paginationHtml = '';
+            if (totalPages > 1) {
+                paginationHtml += `<button ${offset === 0 ? 'disabled' : ''} onclick="searchInstances(${offset - itemsPerPage})">Previous</button>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationHtml += `<button ${i === currentPage ? 'disabled' : ''} onclick="searchInstances(${(i - 1) * itemsPerPage})">${i}</button>`;
+                }
+                paginationHtml += `<button ${offset + itemsPerPage >= currentResults.length ? 'disabled' : ''} onclick="searchInstances(${offset + itemsPerPage})">Next</button>`;
+            }
+            paginationDiv.innerHTML = paginationHtml;
+        }
+
+        function exportResults() {
+            if (!currentResults.length) {
+                alert('No results to export. Please search first.');
+                return;
+            }
+
+            const csvHeader = ['ID', 'Title', 'Title URL', 'Book Jacket URL', 'Tags', 'Subjects', 'Contributors', 'Publisher', 'Publication Year'];
+            const csvRows = currentResults.map(instance => [
+                instance.id,
+                `"${instance.title.replace(/"/g, '""')}"`,
+                `"${currentSearchParams.instanceUrl}${instance.id}"`,
+                `"${instance.bookJacketSource}"`,
+                `"${instance.tags.replace(/"/g, '""')}"`,
+                `"${instance.subjects.replace(/"/g, '""')}"`,
+                `"${instance.contributors.replace(/"/g, '""')}"`,
+                `"${instance.publication.replace(/"/g, '""')}"`,
+                `"${instance.publicationYear.replace(/"/g, '""')}"`
+            ].join(','));
+
+            const csv = [csvHeader.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `instance_search_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

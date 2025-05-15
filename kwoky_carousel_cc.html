@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FOLIO Book Carousel Example</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+            color: #333;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .button-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #authStatus,
+        .error {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        .loading {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        #results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .carousel {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+        }
+
+        .instance-card {
+            flex: 0 0 auto;
+            min-width: 150px;
+            max-width: 250px;
+            width: calc(20vw - 20px);
+            margin: 10px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease, scale 0.3s ease;
+            display: inline-block;
+        }
+
+        .instance-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .instance-card:hover {
+            transform: scale(1.05);
+        }
+
+        .instance-card img {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .instance-card img[src*="base64"] {
+            object-fit: contain;
+        }
+
+        .card-title {
+            padding: 12px 14px;
+            font-size: 12px;
+            color: #2c3e50;
+            background: #fff;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: anywhere !important;
+            hyphens: auto;
+            line-height: 1.3;
+            text-align: center;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .card-title a {
+            color: #3498db;
+            text-decoration: none;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: anywhere !important;
+            hyphens: auto;
+            max-width: 100%;
+        }
+
+        .card-title a:hover {
+            text-decoration: underline;
+        }
+
+        .carousel-controls {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            transform: translateY(-50%);
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .carousel-controls button {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        .carousel-controls button:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .pagination button {
+            margin: 0 5px;
+            padding: 8px 14px;
+            min-width: 32px;
+        }
+
+        @media (max-width: 768px) {
+            .instance-card {
+                min-width: 120px;
+                max-width: 200px;
+                width: calc(30vw - 20px);
+            }
+
+            .instance-card img {
+                height: 225px;
+            }
+
+            .card-title {
+                font-size: 10px;
+                padding: 10px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>FOLIO Book Carousel Example</h1>
+    <div class="form-container">
+        <label for="searchParams">Search Parameters (JSON):</label>
+        <textarea id="searchParams"
+            placeholder='Example: {"endpoint": "https://folio-snapshot-okapi.dev.folio.org", "tenant": "diku", "username": "diku_admin", "password": "admin", "instanceUrl": "https://folio-snapshot.dev.folio.org/inventory/view/", "tags": ["fiction"], "subjects": ["History America"]}'>{"endpoint": "", "tenant": "", "username": "", "password": "", "instanceUrl": "", "tags": [], "subjects": []}</textarea>
+        <div class="button-group">
+            <button onclick="fillDemoParams()">Demo</button>
+            <button onclick="searchInstances(0)">Search</button>
+            <button onclick="exportResults()">Export to CSV</button>
+        </div>
+        <div id="authStatus"></div>
+    </div>
+    <div id="results"></div>
+    <div id="pagination" class="pagination"></div>
+
+    <script>
+        const contentCafeCoverBaseUrl = 'https://contentcafe2.btol.com/ContentCafe/jacket.aspx';
+        const placeholderImage = 'data:image/svg+xml;base64,' + btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="250" height="300" viewBox="0 0 250 300">
+                <rect x="0" y="0" width="250" height="300" fill="#4a4a4a"/>
+                <rect x="25" y="40" width="200" height="60" fill="#ffffff"/>
+                <text x="125" y="75" font-family="Arial, sans-serif" font-size="20" fill="#333" text-anchor="middle">No Cover</text>
+                <rect x="25" y="120" width="200" height="160" fill="#cccccc"/>
+            </svg>
+        `);
+        const placeholderImageMobile = 'data:image/svg+xml;base64,' + btoa(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="200" height="225" viewBox="0 0 200 225">
+                <rect x="0" y="0" width="200" height="225" fill="#4a4a4a"/>
+                <rect x="20" y="30" width="160" height="45" fill="#ffffff"/>
+                <text x="100" y="55" font-family="Arial, sans-serif" font-size="16" fill="#333" text-anchor="middle">No Cover</text>
+                <rect x="20" y="90" width="160" height="120" fill="#cccccc"/>
+            </svg>
+        `);
+        let apiToken = null;
+        let lastUsername = null;
+        let lastPassword = null;
+        let currentResults = [];
+        let currentSearchParams = null;
+        const itemsPerPage = 100;
+        let isScrolling = false;
+
+        function fillDemoParams() {
+            const demoParams = {
+                endpoint: 'https://folio-snapshot-okapi.dev.folio.org',
+                tenant: 'diku',
+                username: 'diku_admin',
+                password: 'admin',
+                instanceUrl: 'https://folio-snapshot.dev.folio.org/inventory/view/',
+                tags: [],
+                subjects: ['fiction', 'music', 'art']
+            };
+            document.getElementById('searchParams').value = JSON.stringify(demoParams, null, 2);
+        }
+
+        async function login(searchParams) {
+            const authStatus = document.getElementById('authStatus');
+            const { endpoint, tenant, username, password } = searchParams;
+
+            if (!endpoint || !tenant || !username || !password) {
+                authStatus.innerHTML = '<span class="error">Error: JSON must include endpoint, tenant, username, and password.</span>';
+                return false;
+            }
+
+            authStatus.innerHTML = '<span class="loading">Logging in...</span>';
+            try {
+                const response = await fetch(`${endpoint}/authn/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Okapi-Tenant': tenant
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`Login failed: ${response.status} - ${text}`);
+                }
+                apiToken = response.headers.get('X-Okapi-Token');
+                authStatus.innerHTML = 'Login successful!';
+                return true;
+            } catch (error) {
+                authStatus.innerHTML = `<span class="error">Error: ${error.message}.</span>`;
+                return false;
+            }
+        }
+
+        function getBookJacketUrl(identifiers) {
+            const isbnObj = identifiers?.find(id => id.identifierTypeId === '8261054f-be78-422d-bd51-4ed9f33c3422');
+            const isbnRaw = isbnObj?.value?.replace(/-|\s/g, '');
+            const isbn = isbnRaw?.match(/^\d{10,13}/)?.[0];
+            if (isbn) {
+                return `${contentCafeCoverBaseUrl}?UserID=ebsco-test&Password=ebsco-test&Return=T&Type=M&Value=${isbn}`;
+            }
+            return window.innerWidth <= 768 ? placeholderImageMobile : placeholderImage;
+        }
+
+        function loadCoverImages(instances) {
+            instances.forEach(instance => {
+                const url = getBookJacketUrl(instance.identifiers);
+                instance.bookJacketUrl = url;
+                instance.bookJacketSource = url.includes('base64') ? 'Embedded SVG Placeholder' : 'Content Cafe';
+                const img = new Image();
+                img.src = url;
+                img.onerror = () => {
+                    instance.bookJacketUrl = window.innerWidth <= 768 ? placeholderImageMobile : placeholderImage;
+                    instance.bookJacketSource = 'Embedded SVG Placeholder';
+                };
+                setTimeout(() => {
+                    if (!img.complete || img.naturalWidth === 0) {
+                        instance.bookJacketUrl = window.innerWidth <= 768 ? placeholderImageMobile : placeholderImage;
+                        instance.bookJacketSource = 'Embedded SVG Placeholder';
+                    }
+                }, 2000);
+            });
+        }
+
+        function setupTouchEvents(carousel) {
+            let startX = 0;
+            let startTime = 0;
+            let isSwiping = false;
+
+            carousel.addEventListener('touchstart', e => {
+                startX = e.touches[0].clientX;
+                startTime = Date.now();
+                isSwiping = true;
+            });
+
+            carousel.addEventListener('touchmove', e => {
+                if (!isSwiping) return;
+                const currentX = e.touches[0].clientX;
+                const diffX = startX - currentX;
+                carousel.scrollLeft += diffX;
+                startX = currentX;
+            });
+
+            carousel.addEventListener('touchend', e => {
+                if (!isSwiping) return;
+                isSwiping = false;
+                const endTime = Date.now();
+                if (endTime - startTime > 300) {
+                    const card = e.target.closest('.instance-card');
+                    if (card) {
+                        card.classList.add('touched');
+                        setTimeout(() => card.classList.remove('touched'), 2000);
+                    }
+                }
+            });
+        }
+
+        function scrollCarousel(carousel, direction) {
+            if (isScrolling) return;
+            isScrolling = true;
+
+            const itemWidth = carousel.querySelector('.instance-card')?.offsetWidth + 20 || 170;
+            const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+            let newScrollLeft = carousel.scrollLeft + (direction * itemWidth);
+
+            if (newScrollLeft > maxScroll) {
+                newScrollLeft = maxScroll;
+            } else if (newScrollLeft < 0) {
+                newScrollLeft = 0;
+            }
+            carousel.scrollLeft = newScrollLeft;
+
+            setTimeout(() => {
+                isScrolling = false;
+            }, 500);
+        }
+
+        async function searchInstances(offset = 0) {
+            const authStatus = document.getElementById('authStatus');
+            const resultsDiv = document.getElementById('results');
+            let searchParams;
+            try {
+                searchParams = JSON.parse(document.getElementById('searchParams').value);
+                if (!searchParams.endpoint || !searchParams.tenant || !searchParams.username ||
+                    !searchParams.password || !searchParams.instanceUrl ||
+                    !Array.isArray(searchParams.tags) || !Array.isArray(searchParams.subjects)) {
+                    resultsDiv.innerHTML = '<span class="error">Error: JSON must include endpoint, tenant, username, password, instanceUrl, tags (array), and subjects (array).</span>';
+                    return;
+                }
+                if (!searchParams.instanceUrl.match(/^https?:\/\//)) {
+                    resultsDiv.innerHTML = '<span class="error">Error: instanceUrl must be a valid URL starting with http:// or https://.</span>';
+                    return;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<span class="error">Error: Invalid JSON format.</span>';
+                return;
+            }
+
+            if (apiToken && (searchParams.username !== lastUsername || searchParams.password !== lastPassword)) {
+                apiToken = null;
+                authStatus.innerHTML = '<span class="loading">Credentials changed. Re-authenticating...</span>';
+            }
+
+            if (!apiToken) {
+                const loggedIn = await login(searchParams);
+                if (!loggedIn) return;
+                lastUsername = searchParams.username;
+                lastPassword = searchParams.password;
+            }
+
+            const tags = searchParams.tags.filter(tag => tag.trim()).map(tag => tag.trim());
+            const subjects = searchParams.subjects.filter(subject => subject.trim()).map(subject => subject.trim());
+            const hasTags = tags.length > 0;
+            const hasSubjects = subjects.length > 0;
+
+            if (!hasTags && !hasSubjects) {
+                resultsDiv.innerHTML = '<span class="error">Error: Please provide at least one tag or subject.</span>';
+                currentResults = [];
+                displayPage(0, 0);
+                return;
+            }
+
+            let cqlQueryParts = [];
+            if (hasTags) {
+                cqlQueryParts.push(`(${tags.map(tag => `instanceTags=="${tag}"`).join(" OR ")})`);
+            }
+            if (hasSubjects) {
+                cqlQueryParts.push(`(${subjects.map(subject => `subjects="${subject}"`).join(" OR ")})`);
+            }
+
+            const cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "";
+            if (!cqlQuery) {
+                resultsDiv.innerHTML = '<span class="error">Error: No valid search criteria provided.</span>';
+                currentResults = [];
+                displayPage(0, 0);
+                return;
+            }
+
+            const instancesUrl = `${searchParams.endpoint}/search/instances?expandAll=true&query=${encodeURIComponent(cqlQuery)}&limit=${itemsPerPage}&offset=${offset}&sortby=title`;
+            resultsDiv.innerHTML = '<span class="loading">Loading instances...</span>';
+            try {
+                const response = await fetch(instancesUrl, {
+                    headers: {
+                        'X-Okapi-Tenant': searchParams.tenant,
+                        'X-Okapi-Token': apiToken
+                    }
+                });
+                if (response.status === 401) {
+                    apiToken = null;
+                    authStatus.innerHTML = '<span class="loading">Token expired. Re-authenticating...</span>';
+                    const loggedIn = await login(searchParams);
+                    if (!loggedIn) return;
+                    lastUsername = searchParams.username;
+                    lastPassword = searchParams.password;
+                    const retryResponse = await fetch(instancesUrl, {
+                        headers: {
+                            'X-Okapi-Tenant': searchParams.tenant,
+                            'X-Okapi-Token': apiToken
+                        }
+                    });
+                    if (!retryResponse.ok) {
+                        const text = await retryResponse.text();
+                        throw new Error(`Instances fetch failed: ${retryResponse.status} - ${text}`);
+                    }
+                    const data = await retryResponse.json();
+                    processResults(data, searchParams, offset);
+                } else if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`Instances fetch failed: ${response.status} - ${text}`);
+                } else {
+                    const data = await response.json();
+                    processResults(data, searchParams, offset);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<span class="error">Error: ${error.message}.</span>`;
+            }
+        }
+
+        function processResults(data, searchParams, offset) {
+            const uniqueInstances = [];
+            const seenIds = new Set();
+            for (const instance of data.instances) {
+                if (!seenIds.has(instance.id)) {
+                    seenIds.add(instance.id);
+                    uniqueInstances.push({
+                        id: instance.id || 'Unknown',
+                        title: instance.title || 'Unknown',
+                        tags: instance.tags?.tagList?.join(', ') || 'None',
+                        subjects: instance.subjects?.map(s => s.value || s).join(', ') || 'None',
+                        contributors: instance.contributors?.map(c => c.name).join(', ') || 'None',
+                        publication: instance.publication?.[0]?.publisher || 'Unknown',
+                        publicationYear: instance.publication?.[0]?.dateOfPublication || 'Unknown',
+                        identifiers: instance.identifiers,
+                        bookJacketUrl: null,
+                        bookJacketSource: 'Loading...'
+                    });
+                }
+            }
+
+            currentResults = uniqueInstances;
+            currentSearchParams = searchParams;
+            loadCoverImages(currentResults);
+            displayPage(offset, data.totalRecords);
+        }
+
+        function displayPage(offset, totalRecords) {
+            const resultsDiv = document.getElementById('results');
+            const start = offset;
+            const end = Math.min(start + itemsPerPage, currentResults.length);
+            const pageItems = currentResults.slice(start, end);
+
+            let resultsHtml = `
+                <p><strong>Total Instances:</strong> ${totalRecords} | <strong>Showing:</strong> ${start + 1}-${end} of ${currentResults.length} unique instances</p>
+            `;
+            if (currentResults.length === 0) {
+                resultsHtml = '<p>No instances found.</p>';
+            } else {
+                resultsHtml += `
+                    <div class="carousel-container">
+                        <div class="carousel">
+                            ${pageItems.map(instance => `
+                                <div class="instance-card visible" data-instance-id="${instance.id}" role="button" tabindex="0" aria-label="View details for ${instance.title}">
+                                    <img src="${instance.bookJacketUrl}" alt="Book jacket for ${instance.title}">
+                                    <div class="card-title"><a href="${currentSearchParams.instanceUrl}${instance.id}" target="_blank">${instance.title}</a></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="carousel-controls">
+                            <button onclick="scrollCarousel(document.querySelector('.carousel'), -1)" aria-label="Previous item">◀</button>
+                            <button onclick="scrollCarousel(document.querySelector('.carousel'), 1)" aria-label="Next item">▶</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsDiv.innerHTML = resultsHtml;
+            updatePagination(offset, totalRecords);
+            const carousel = document.querySelector('.carousel');
+            if (carousel) {
+                setupTouchEvents(carousel);
+            }
+        }
+
+        function updatePagination(offset, totalRecords) {
+            const paginationDiv = document.getElementById('pagination');
+            const totalPages = Math.ceil(currentResults.length / itemsPerPage);
+            const currentPage = Math.floor(offset / itemsPerPage) + 1;
+
+            let paginationHtml = '';
+            if (totalPages > 1) {
+                paginationHtml += `<button ${offset === 0 ? 'disabled' : ''} onclick="searchInstances(${offset - itemsPerPage})">Previous</button>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationHtml += `<button ${i === currentPage ? 'disabled' : ''} onclick="searchInstances(${(i - 1) * itemsPerPage})">${i}</button>`;
+                }
+                paginationHtml += `<button ${offset + itemsPerPage >= currentResults.length ? 'disabled' : ''} onclick="searchInstances(${offset + itemsPerPage})">Next</button>`;
+            }
+            paginationDiv.innerHTML = paginationHtml;
+        }
+
+        function exportResults() {
+            if (!currentResults.length) {
+                alert('No results to export. Please search first.');
+                return;
+            }
+
+            const csvHeader = ['ID', 'Title', 'Title URL', 'Book Jacket URL', 'Tags', 'Subjects', 'Contributors', 'Publisher', 'Publication Year'];
+            const csvRows = currentResults.map(instance => [
+                instance.id,
+                `"${instance.title.replace(/"/g, '""')}"`,
+                `"${currentSearchParams.instanceUrl}${instance.id}"`,
+                `"${instance.bookJacketSource}"`,
+                `"${instance.tags.replace(/"/g, '""')}"`,
+                `"${instance.subjects.replace(/"/g, '""')}"`,
+                `"${instance.contributors.replace(/"/g, '""')}"`,
+                `"${instance.publication.replace(/"/g, '""')}"`,
+                `"${instance.publicationYear.replace(/"/g, '""')}"`
+            ].join(','));
+
+            const csv = [csvHeader.join(','), ...csvRows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `instance_search_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
