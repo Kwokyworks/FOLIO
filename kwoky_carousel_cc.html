@@ -452,7 +452,7 @@
                 cqlQueryParts.push(`(${subjects.map(subject => `subjects="${subject}"`).join(" OR ")})`);
             }
 
-            const cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "";
+            let cqlQuery = cqlQueryParts.length > 0 ? cqlQueryParts.join(" AND ") : "";
             if (!cqlQuery) {
                 resultsDiv.innerHTML = '<span class="error">Error: No valid search criteria provided.</span>';
                 currentResults = [];
@@ -460,7 +460,10 @@
                 return;
             }
 
-            const instancesUrl = `${searchParams.endpoint}/search/instances?expandAll=true&query=${encodeURIComponent(cqlQuery)}&limit=${itemsPerPage}&offset=${offset}&sortby=title`;
+            // Append sortby title to the CQL query
+            cqlQuery = `(${cqlQuery}) sortby title`;
+
+            const instancesUrl = `${searchParams.endpoint}/search/instances?expandAll=true&query=${encodeURIComponent(cqlQuery)}&limit=${itemsPerPage}&offset=${offset}`;
             resultsDiv.innerHTML = '<span class="loading">Loading instances...</span>';
             try {
                 const response = await fetch(instancesUrl, {
@@ -520,6 +523,11 @@
                     });
                 }
             }
+
+            // Client-side sorting as a fallback
+            uniqueInstances.sort((a, b) => 
+                a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+            );
 
             currentResults = uniqueInstances;
             currentSearchParams = searchParams;
